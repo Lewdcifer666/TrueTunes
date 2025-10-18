@@ -2,8 +2,8 @@
 // Detects AI-generated music on Spotify
 
 (function TrueTunes() {
-    const GITHUB_RAW = "https://raw.githubusercontent.com/Lewdcifer666/truetunes/main/data/flagged.json";
-    const ISSUE_URL = "https://github.com/Lewdcifer666/truetunes/issues/new";
+    const GITHUB_RAW = "https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/flagged.json";
+    const ISSUE_URL = "https://github.com/Lewdcifer666/TrueTunes/issues/new";
     
     let flaggedArtists = new Map();
     let settings = {

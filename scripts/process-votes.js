@@ -2,7 +2,7 @@ const fs = require('fs');
 const https = require('https');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO = process.env.GITHUB_REPOSITORY || 'Lewdcifer666/truetunes';
+const REPO = process.env.GITHUB_REPOSITORY || 'Lewdcifer666/TrueTunes';
 const MIN_VOTES = 10;
 const AI_THRESHOLD = 0.75;
 
