@@ -1,6 +1,37 @@
 {
   "version": "1.0.0",
   "updated": "2025-10-18T00:00:00Z",
-  "total": 0,
-  "artists": []
+  "total": 3,
+  "artists": [
+    {
+      "id": "test1",
+      "name": "AI Test Artist 1",
+      "platforms": {
+        "spotify": "3TVXtAsR1Inumwj472S9r4"
+      },
+      "votes": { "ai": 15, "human": 1 },
+      "confidence": 0.94,
+      "added": "2025-10-18T00:00:00Z"
+    },
+    {
+      "id": "test2",
+      "name": "Digital Dreams Band",
+      "platforms": {
+        "youtube": "UCtest123456"
+      },
+      "votes": { "ai": 12, "human": 2 },
+      "confidence": 0.86,
+      "added": "2025-10-18T00:00:00Z"
+    },
+    {
+      "id": "test3",
+      "name": "Synthetic Sounds",
+      "platforms": {
+        "spotify": "1dfeR4HaWDbWqFHLkxsg1d"
+      },
+      "votes": { "ai": 20, "human": 1 },
+      "confidence": 0.95,
+      "added": "2025-10-18T00:00:00Z"
+    }
+  ]
 }
