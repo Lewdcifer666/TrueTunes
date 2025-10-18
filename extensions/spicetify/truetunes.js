@@ -47,17 +47,25 @@
 
     // Check current track
     function checkCurrentTrack() {
-        if (!Spicetify.Player.data) return;
-        
-        const track = Spicetify.Player.data.track;
-        if (!track || !track.metadata) return;
-        
-        const artistUri = track.metadata.artist_uri;
-        if (!artistUri) return;
-        
+        if (!Spicetify.Player.data || !Spicetify.Player.data.item) return;
+    
+        const item = Spicetify.Player.data.item;
+    
+        // Try multiple ways to get artist URI (Spotify API changes)
+        let artistUri = item.metadata?.reason_artist || 
+                        item.metadata?.artist_uri ||
+                        (item.artists && item.artists[0]?.uri);
+    
+        if (!artistUri) {
+            console.log('[TrueTunes] No artist URI found');
+            return;
+        }
+    
         const artistId = artistUri.split(':').pop();
         const flagged = flaggedArtists.get(artistId);
-        
+    
+        console.log('[TrueTunes] Checking artist:', artistId, flagged ? '- FLAGGED!' : '- clean');
+    
         if (flagged && flagged.confidence >= settings.confidenceThreshold) {
             handleFlaggedTrack(flagged);
         }
