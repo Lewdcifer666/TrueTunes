@@ -113,35 +113,9 @@
         Spicetify.showNotification('✓ Vote submitted! Thanks for contributing.', false, 3000);
     }
 
-    // Create settings menu
+    // Create settings menu - Disabled for now
     function createSettingsMenu() {
-        const menu = new Spicetify.Menu.SubMenu('TrueTunes', [
-            new Spicetify.Menu.Item('Vote AI Generated', false, () => voteOnArtist('ai')),
-            new Spicetify.Menu.Item('Vote Human Artist', false, () => voteOnArtist('human')),
-            new Spicetify.Menu.Item('---', false, () => {}),
-            new Spicetify.Menu.Item('Auto-skip AI tracks', settings.autoSkip, () => {
-                settings.autoSkip = !settings.autoSkip;
-                saveSettings();
-                createSettingsMenu();
-            }),
-            new Spicetify.Menu.Item('Auto-dislike AI tracks', settings.autoDislike, () => {
-                settings.autoDislike = !settings.autoDislike;
-                saveSettings();
-                createSettingsMenu();
-            }),
-            new Spicetify.Menu.Item('Show warnings', settings.showWarnings, () => {
-                settings.showWarnings = !settings.showWarnings;
-                saveSettings();
-                createSettingsMenu();
-            }),
-            new Spicetify.Menu.Item('---', false, () => {}),
-            new Spicetify.Menu.Item('Refresh database', false, () => {
-                loadFlaggedList();
-                Spicetify.showNotification('✓ Database refreshed', false, 2000);
-            })
-        ]);
-        
-        menu.register();
+      console.log('[TrueTunes] Menu creation skipped - detection only mode');
     }
 
     // Initialize
@@ -158,7 +132,8 @@
         
         Spicetify.Player.addEventListener('songchange', checkCurrentTrack);
         
-        createSettingsMenu();
+        // createSettingsMenu(); // Disabled for now
+        console.log('[TrueTunes] Menu registered (detection only)');
         
         // Auto-refresh every 6 hours
         setInterval(loadFlaggedList, 6 * 60 * 60 * 1000);

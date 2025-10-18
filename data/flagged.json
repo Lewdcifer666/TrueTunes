@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "updated": "2025-10-18T00:00:00Z",
-  "total": 3,
+  "total": 4,
   "artists": [
     {
       "id": "test1",
@@ -31,6 +31,16 @@
       },
       "votes": { "ai": 20, "human": 1 },
       "confidence": 0.95,
+      "added": "2025-10-18T00:00:00Z"
+    },
+    {
+      "id": "test_detection",
+      "name": "Test Artist for Detection",
+      "platforms": {
+        "spotify": "2WRavyZrFClZuCdi5v5OSu"
+      },
+      "votes": { "ai": 15, "human": 1 },
+      "confidence": 0.94,
       "added": "2025-10-18T00:00:00Z"
     }
   ]
