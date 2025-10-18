@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueTunes - Community AI Music Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .gradient-bg {
+            background: linear-gradient(-45deg, #1e293b, #7e22ce, #db2777, #1e293b);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-16">
+            <h1 class="text-6xl font-bold mb-4 drop-shadow-lg">🎵 TrueTunes</h1>
+            <p class="text-2xl text-purple-200 mb-8">Community-Powered AI Music Detection</p>
+            <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+                Help keep music real. Vote on artists, detect AI-generated music, 
+                and protect authentic creativity across Spotify, YouTube, and more.
+            </p>
+        </header>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+            <div class="bg-white/10 backdrop-blur rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-purple-300" id="stat-total">0</div>
+                <div class="text-gray-300 mt-2">Total Artists</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-pink-300" id="stat-flagged">0</div>
+                <div class="text-gray-300 mt-2">AI Flagged</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-green-300" id="stat-votes">0</div>
+                <div class="text-gray-300 mt-2">Total Votes</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur rounded-xl p-6 text-center">
+                <div class="text-4xl font-bold text-blue-300" id="stat-today">0</div>
+                <div class="text-gray-300 mt-2">Votes Today</div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-8 mb-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Get Started</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="https://github.com/Lewdcifer666/truetunes/tree/main/extensions/spicetify" 
+                   class="bg-purple-600 hover:bg-purple-700 rounded-xl p-6 transition">
+                    <div class="text-4xl mb-3">🖥️</div>
+                    <h3 class="font-bold text-xl mb-2">Spicetify Extension</h3>
+                    <p class="text-sm text-purple-200">For Spotify Desktop</p>
+                </a>
+                <a href="https://github.com/Lewdcifer666/truetunes/tree/main/extensions/browser" 
+                   class="bg-pink-600 hover:bg-pink-700 rounded-xl p-6 transition">
+                    <div class="text-4xl mb-3">🌐</div>
+                    <h3 class="font-bold text-xl mb-2">Browser Extension</h3>
+                    <p class="text-sm text-pink-200">Chrome, Firefox, Edge</p>
+                </a>
+                <a href="https://github.com/Lewdcifer666/truetunes" 
+                   class="bg-blue-600 hover:bg-blue-700 rounded-xl p-6 transition">
+                    <div class="text-4xl mb-3">💻</div>
+                    <h3 class="font-bold text-xl mb-2">View on GitHub</h3>
+                    <p class="text-sm text-blue-200">Source Code & Docs</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-8 mb-16">
+            <h2 class="text-3xl font-bold mb-6 text-center">Search Flagged Artists</h2>
+            <input 
+                type="text" 
+                id="search-input"
+                placeholder="Search by artist name..."
+                class="w-full px-6 py-4 rounded-xl bg-white/20 backdrop-blur text-white placeholder-gray-400 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+            <div id="search-results" class="mt-6 space-y-4"></div>
+        </div>
+
+        <!-- Recently Flagged -->
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-8 mb-16">
+            <h2 class="text-3xl font-bold mb-6">Recently Flagged Artists</h2>
+            <div id="recent-list" class="space-y-4"></div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="bg-white/10 backdrop-blur rounded-2xl p-8 mb-16">
+            <h2 class="text-3xl font-bold mb-8 text-center">How It Works</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="text-6xl mb-4">📥</div>
+                    <h3 class="text-xl font-bold mb-2">1. Install</h3>
+                    <p class="text-gray-300">Add extension to your browser or Spotify</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-6xl mb-4">🗳️</div>
+                    <h3 class="text-xl font-bold mb-2">2. Vote</h3>
+                    <p class="text-gray-300">Report AI-generated artists you find</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-6xl mb-4">✅</div>
+                    <h3 class="text-xl font-bold mb-2">3. Protected</h3>
+                    <p class="text-gray-300">Auto-skip or filter AI music automatically</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-400">
+            <p class="mb-4">Open source and community-driven</p>
+            <a href="https://github.com/Lewdcifer666/truetunes" class="text-purple-400 hover:text-purple-300">
+                View on GitHub →
+            </a>
+        </footer>
+    </div>
+
+    <script>
+        // Replace with your GitHub username
+        const GITHUB_USERNAME = 'Lewdcifer666';
+        const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/truetunes/main/data/`;
+
+        let allArtists = [];
+
+        // Load data
+        async function loadData() {
+            try {
+                const [flagged, stats] = await Promise.all([
+                    fetch(DATA_URL + 'flagged.json?t=' + Date.now()).then(r => r.json()),
+                    fetch(DATA_URL + 'stats.json?t=' + Date.now()).then(r => r.json())
+                ]);
+
+                allArtists = flagged.artists;
+
+                // Update stats
+                document.getElementById('stat-total').textContent = stats.totalArtists.toLocaleString();
+                document.getElementById('stat-flagged').textContent = stats.flaggedArtists.toLocaleString();
+                document.getElementById('stat-votes').textContent = stats.votesTotal.toLocaleString();
+                document.getElementById('stat-today').textContent = stats.votesToday.toLocaleString();
+
+                // Show recent
+                displayRecent(allArtists.slice(0, 10));
+            } catch (error) {
+                console.error('Failed to load data:', error);
+            }
+        }
+
+        // Display recent artists
+        function displayRecent(artists) {
+            const container = document.getElementById('recent-list');
+            container.innerHTML = artists.map(artist => `
+                <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-lg">${artist.name}</h3>
+                            <p class="text-sm text-gray-400">
+                                ${Object.keys(artist.platforms).join(', ')}
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-pink-400">
+                                ${Math.round(artist.confidence * 100)}%
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                👍 ${artist.votes.ai} / 👎 ${artist.votes.human}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Search functionality
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            if (!query) {
+                document.getElementById('search-results').innerHTML = '';
+                return;
+            }
+
+            const results = allArtists.filter(a => 
+                a.name.toLowerCase().includes(query)
+            ).slice(0, 20);
+
+            document.getElementById('search-results').innerHTML = results.length > 0
+                ? results.map(artist => `
+                    <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold">${artist.name}</h3>
+                                <p class="text-sm text-gray-400">
+                                    ${Object.keys(artist.platforms).join(', ')}
+                                </p>
+                            </div>
+                            <div class="text-pink-400 font-bold">
+                                ${Math.round(artist.confidence * 100)}%
+                            </div>
+                        </div>
+                    </div>
+                `).join('')
+                : '<p class="text-gray-400 text-center py-4">No results found</p>';
+        });
+
+        // Initialize
+        loadData();
+    </script>
+</body>
+</html>
