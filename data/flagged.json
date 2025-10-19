@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "updated": "2025-10-18T00:00:00Z",
-  "total": 4,
+  "version": "2025-10-19T16:58:02.118Z",
+  "updated": "2025-10-19T16:58:02.118Z",
+  "total": 5,
   "artists": [
     {
       "id": "test1",
@@ -38,6 +38,15 @@
       },
       "votes": 15,
       "added": "2025-10-18T00:00:00Z"
+    },
+    {
+      "id": "spotify:07XIuuPrpw0kcGrJApsbQp",
+      "name": "Deathly Hours",
+      "platforms": {
+        "spotify": "07XIuuPrpw0kcGrJApsbQp"
+      },
+      "votes": 10,
+      "added": "2025-10-19T16:58:02.118Z"
     }
   ]
 }
