@@ -3,7 +3,8 @@ const https = require('https');
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY || 'Lewdcifer666/TrueTunes';
-const MIN_VOTES = 10; // Simplified: just need 10 AI votes
+const MIN_VOTES = 10;
+const MAX_VOTES_PER_USER = 20; // Rate limit per processing cycle
 
 function fetchIssues() {
     return new Promise((resolve, reject) => {
@@ -59,7 +60,7 @@ function parseVote(issue) {
 
     const platformMatch = body.match(/Platform:\s*(\w+)/i);
     const idMatch = body.match(/(?:Artist )?ID:\s*([^\s\n]+)/i);
-    const voteMatch = body.match(/Vote:\s*ai/i); // Only check for AI votes
+    const voteMatch = body.match(/Vote:\s*ai/i);
 
     if (!platformMatch || !idMatch || !voteMatch) return null;
 
@@ -67,7 +68,8 @@ function parseVote(issue) {
         artist: artistMatch[1].trim(),
         platform: platformMatch[1].toLowerCase(),
         id: idMatch[1].trim(),
-        issueNumber: issue.number
+        issueNumber: issue.number,
+        reporter: issue.user.login
     };
 }
 
@@ -87,13 +89,24 @@ async function main() {
 
     const artistVotes = new Map();
     const processedIssues = [];
+    const userVoteCount = new Map(); // Track votes per user
 
     for (const issue of issues) {
         const vote = parseVote(issue);
         if (!vote) {
             console.log(`Skipping issue #${issue.number}: invalid format`);
+            processedIssues.push(issue.number);
             continue;
         }
+
+        // Rate limiting: Max votes per user per cycle
+        const userCount = userVoteCount.get(vote.reporter) || 0;
+        if (userCount >= MAX_VOTES_PER_USER) {
+            console.log(`⚠ User ${vote.reporter} exceeded rate limit (${userCount} votes) - IGNORED`);
+            processedIssues.push(issue.number);
+            continue;
+        }
+        userVoteCount.set(vote.reporter, userCount + 1);
 
         const key = `${vote.platform}:${vote.id}`;
 
@@ -102,11 +115,20 @@ async function main() {
                 name: vote.artist,
                 platform: vote.platform,
                 id: vote.id,
-                votes: 0
+                reporters: new Set()
             });
         }
 
-        artistVotes.get(key).votes++;
+        const data = artistVotes.get(key);
+
+        // Check if user already voted for this artist
+        if (!data.reporters.has(vote.reporter)) {
+            data.reporters.add(vote.reporter);
+            console.log(`✓ Counted vote from ${vote.reporter} for ${vote.artist}`);
+        } else {
+            console.log(`⚠ Duplicate vote from ${vote.reporter} for ${vote.artist} - IGNORED`);
+        }
+
         processedIssues.push(issue.number);
     }
 
@@ -117,15 +139,22 @@ async function main() {
         );
 
         if (existing) {
-            existing.votes += data.votes;
+            // Merge new reporters with existing ones
+            const existingReporters = new Set(existing.reporters || []);
+            data.reporters.forEach(reporter => existingReporters.add(reporter));
+            existing.reporters = Array.from(existingReporters);
+            existing.votes = existing.reporters.length; // Vote count = unique reporters
+            console.log(`Updated existing pending artist: ${data.name} (${existing.votes} votes)`);
         } else {
             pending.artists.push({
                 id: key,
                 name: data.name,
                 platforms: { [data.platform]: data.id },
-                votes: data.votes,
+                votes: data.reporters.size,
+                reporters: Array.from(data.reporters),
                 added: new Date().toISOString()
             });
+            console.log(`Added new pending artist: ${data.name} (${data.reporters.size} votes)`);
         }
     }
 
@@ -137,6 +166,7 @@ async function main() {
         if (artist.votes >= MIN_VOTES) {
             flagged.artists.push(artist);
             newlyFlagged++;
+            console.log(`🚩 Flagged: ${artist.name} with ${artist.votes} votes`);
             return false;
         }
         return true;
@@ -160,9 +190,10 @@ async function main() {
     fs.writeFileSync('data/pending.json', JSON.stringify(pending, null, 2));
     fs.writeFileSync('data/stats.json', JSON.stringify(stats, null, 2));
 
-    console.log(`Processed ${processedIssues.length} votes`);
+    console.log(`\n=== Summary ===`);
+    console.log(`Processed ${processedIssues.length} issues`);
     console.log(`${newlyFlagged} artists newly flagged`);
-    console.log(`${pending.artists.length} artists pending`);
+    console.log(`${pending.artists.length} artists pending (need ${MIN_VOTES} votes)`);
     console.log(`${flagged.artists.length} total flagged artists`);
 
     for (const issueNumber of processedIssues) {
