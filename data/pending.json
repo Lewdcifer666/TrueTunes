@@ -1,5 +1,18 @@
 {
-  "version": "2025-10-19T16:58:02.118Z",
-  "updated": "2025-10-19T16:58:02.118Z",
-  "artists": []
+  "version": "2025-10-19T17:55:27.019Z",
+  "updated": "2025-10-19T17:55:27.019Z",
+  "artists": [
+    {
+      "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
+      "name": "Bleeding Verse",
+      "platforms": {
+        "spotify": "6CrsGj3Zj4gIM3rQSU7DeW"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-19T17:55:27.019Z"
+    }
+  ]
 }
