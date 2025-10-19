@@ -36,8 +36,8 @@
             <h1 class="text-6xl font-bold mb-4 drop-shadow-lg">🎵 TrueTunes</h1>
             <p class="text-2xl text-purple-200 mb-8">Community-Powered AI Music Detection</p>
             <p class="text-lg text-gray-300 max-w-2xl mx-auto">
-                Help keep music real. Vote on artists, detect AI-generated music,
-                and protect authentic creativity across Spotify, YouTube, and more.
+                Help keep music real. Report AI-generated artists and protect authentic creativity across Spotify,
+                YouTube, and more.
             </p>
         </header>
 
@@ -106,27 +106,26 @@
 
             <div class="space-y-4 max-w-3xl mx-auto">
                 <div class="bg-white/5 rounded-xl p-6">
-                    <h3 class="text-xl font-bold mb-3 text-purple-300">📝 How to Vote</h3>
+                    <h3 class="text-xl font-bold mb-3 text-purple-300">📝 How to Report AI Artists</h3>
                     <p class="text-gray-300">
-                        Right-click any artist in Spotify and select "TrueTunes: Vote AI Generated" or "Vote Human
-                        Artist".
-                        This opens a pre-filled GitHub Issue - just click Submit! (Requires free GitHub account)
+                        When you find an AI-generated artist, simply right-click them in Spotify and select "TrueTunes:
+                        Report AI Generated".
+                        Or hover over any track and click the 🚨 button that appears!
                     </p>
                 </div>
 
                 <div class="bg-white/5 rounded-xl p-6">
                     <h3 class="text-xl font-bold mb-3 text-green-300">⏱️ Processing Time</h3>
                     <p class="text-gray-300">
-                        Votes are automatically processed every 6 hours. Once an artist receives 10+ votes with 75%+
-                        agreement,
-                        they're automatically flagged and appear here!
+                        Votes are automatically processed every 6 hours. Once an artist receives 10+ reports,
+                        they're automatically flagged and appear here for everyone!
                     </p>
                 </div>
 
                 <div class="bg-white/5 rounded-xl p-6">
-                    <h3 class="text-xl font-bold mb-3 text-blue-300">👀 See Pending Votes</h3>
+                    <h3 class="text-xl font-bold mb-3 text-blue-300">👀 See Pending Reports</h3>
                     <p class="text-gray-300">
-                        View all open votes:
+                        View all open reports:
                         <a href="https://github.com/Lewdcifer666/TrueTunes/issues?q=is%3Aissue+is%3Aopen+label%3Avote"
                             class="text-purple-400 hover:text-purple-300 underline" target="_blank">
                             GitHub Issues →
@@ -135,7 +134,16 @@
                 </div>
 
                 <div class="bg-white/5 rounded-xl p-6">
-                    <h3 class="text-xl font-bold mb-3 text-pink-300">🚫 No GitHub Account?</h3>
+                    <h3 class="text-xl font-bold mb-3 text-pink-300">❓ Why no "Vote Human" option?</h3>
+                    <p class="text-gray-300">
+                        We assume all artists are human by default. Only report those you believe are AI-generated.
+                        This keeps the system simple and prevents spam. If not enough people report an artist, they
+                        won't be flagged.
+                    </p>
+                </div>
+
+                <div class="bg-white/5 rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-3 text-yellow-300">🚫 No GitHub Account?</h3>
                     <p class="text-gray-300">
                         Creating a free GitHub account takes 2 minutes:
                         <a href="https://github.com/signup" class="text-purple-400 hover:text-purple-300 underline"
@@ -157,13 +165,11 @@
     </div>
 
     <script>
-        // Replace with your GitHub username
         const GITHUB_USERNAME = 'Lewdcifer666';
         const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/TrueTunes/main/data/`;
 
         let allArtists = [];
 
-        // Load data
         async function loadData() {
             try {
                 const [flagged, stats] = await Promise.all([
@@ -173,20 +179,17 @@
 
                 allArtists = flagged.artists;
 
-                // Update stats
                 document.getElementById('stat-total').textContent = stats.totalArtists.toLocaleString();
                 document.getElementById('stat-flagged').textContent = stats.flaggedArtists.toLocaleString();
                 document.getElementById('stat-votes').textContent = stats.votesTotal.toLocaleString();
                 document.getElementById('stat-today').textContent = stats.votesToday.toLocaleString();
 
-                // Show recent
                 displayRecent(allArtists.slice(0, 10));
             } catch (error) {
                 console.error('Failed to load data:', error);
             }
         }
 
-        // Display recent artists
         function displayRecent(artists) {
             const container = document.getElementById('recent-list');
             container.innerHTML = artists.map(artist => `
@@ -200,10 +203,10 @@
                         </div>
                         <div class="text-right">
                             <div class="text-2xl font-bold text-pink-400">
-                                ${Math.round(artist.confidence * 100)}%
+                                ${artist.votes} votes
                             </div>
                             <div class="text-xs text-gray-400">
-                                👍 ${artist.votes.ai} / 👎 ${artist.votes.human}
+                                Community flagged
                             </div>
                         </div>
                     </div>
@@ -211,7 +214,6 @@
             `).join('');
         }
 
-        // Search functionality
         document.getElementById('search-input').addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             if (!query) {
@@ -234,7 +236,7 @@
                                 </p>
                             </div>
                             <div class="text-pink-400 font-bold">
-                                ${Math.round(artist.confidence * 100)}%
+                                ${artist.votes} votes
                             </div>
                         </div>
                     </div>
@@ -242,7 +244,6 @@
                 : '<p class="text-gray-400 text-center py-4">No results found</p>';
         });
 
-        // Initialize
         loadData();
     </script>
 </body>
