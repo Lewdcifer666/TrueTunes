@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-19T17:55:27.019Z",
-  "updated": "2025-10-19T17:55:27.019Z",
+  "version": "2025-10-19T23:10:59.778Z",
+  "updated": "2025-10-19T23:10:59.778Z",
   "artists": [
     {
       "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
@@ -13,6 +13,18 @@
         "Lewdcifer666"
       ],
       "added": "2025-10-19T17:55:27.019Z"
+    },
+    {
+      "id": "spotify:2GRtyAXWUiisGYub5SGMrb",
+      "name": "The Velvet Sundown",
+      "platforms": {
+        "spotify": "2GRtyAXWUiisGYub5SGMrb"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-19T23:10:59.777Z"
     }
   ]
 }
