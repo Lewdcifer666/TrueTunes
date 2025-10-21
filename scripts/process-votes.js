@@ -4,7 +4,7 @@ const https = require('https');
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY || 'Lewdcifer666/TrueTunes';
 const MIN_VOTES = 10;
-const MAX_VOTES_PER_USER = 20; // Rate limit per processing cycle
+const MAX_VOTES_PER_USER = 20;
 
 function fetchIssues() {
     return new Promise((resolve, reject) => {
@@ -88,8 +88,9 @@ async function main() {
     const stats = JSON.parse(fs.readFileSync('data/stats.json', 'utf8'));
 
     const artistVotes = new Map();
-    const processedIssues = [];
-    const userVoteCount = new Map(); // Track votes per user
+    const processedIssues = []; // Issues to close (only duplicates/invalid)
+    const issuesToClose = [];    // NEW: Only issues for artists that reached threshold
+    const userVoteCount = new Map();
 
     for (const issue of issues) {
         const vote = parseVote(issue);
@@ -99,7 +100,7 @@ async function main() {
             continue;
         }
 
-        // Rate limiting: Max votes per user per cycle
+        // Rate limiting
         const userCount = userVoteCount.get(vote.reporter) || 0;
         if (userCount >= MAX_VOTES_PER_USER) {
             console.log(`⚠ User ${vote.reporter} exceeded rate limit (${userCount} votes) - IGNORED`);
@@ -115,7 +116,8 @@ async function main() {
                 name: vote.artist,
                 platform: vote.platform,
                 id: vote.id,
-                reporters: new Set()
+                reporters: new Set(),
+                issueNumbers: [] // NEW: Track all issue numbers for this artist
             });
         }
 
@@ -124,12 +126,12 @@ async function main() {
         // Check if user already voted for this artist
         if (!data.reporters.has(vote.reporter)) {
             data.reporters.add(vote.reporter);
+            data.issueNumbers.push(issue.number); // Track this issue
             console.log(`✓ Counted vote from ${vote.reporter} for ${vote.artist}`);
         } else {
-            console.log(`⚠ Duplicate vote from ${vote.reporter} for ${vote.artist} - IGNORED`);
+            console.log(`⚠ Duplicate vote from ${vote.reporter} for ${vote.artist} - CLOSING DUPLICATE`);
+            processedIssues.push(issue.number); // Close duplicate
         }
-
-        processedIssues.push(issue.number);
     }
 
     // Update pending artists
@@ -143,8 +145,8 @@ async function main() {
             const existingReporters = new Set(existing.reporters || []);
             data.reporters.forEach(reporter => existingReporters.add(reporter));
             existing.reporters = Array.from(existingReporters);
-            existing.votes = existing.reporters.length; // Vote count = unique reporters
-            console.log(`Updated existing pending artist: ${data.name} (${existing.votes} votes)`);
+            existing.votes = existing.reporters.length;
+            console.log(`Updated existing pending artist: ${data.name} (${existing.votes}/${MIN_VOTES} votes)`);
         } else {
             pending.artists.push({
                 id: key,
@@ -154,11 +156,11 @@ async function main() {
                 reporters: Array.from(data.reporters),
                 added: new Date().toISOString()
             });
-            console.log(`Added new pending artist: ${data.name} (${data.reporters.size} votes)`);
+            console.log(`Added new pending artist: ${data.name} (${data.reporters.size}/${MIN_VOTES} votes)`);
         }
     }
 
-    // Move to flagged if threshold met
+    // Move to flagged if threshold met AND close related issues
     const now = new Date().toISOString();
     let newlyFlagged = 0;
 
@@ -166,17 +168,25 @@ async function main() {
         if (artist.votes >= MIN_VOTES) {
             flagged.artists.push(artist);
             newlyFlagged++;
-            console.log(`🚩 Flagged: ${artist.name} with ${artist.votes} votes`);
-            return false;
+            console.log(`🚩 Flagged: ${artist.name} with ${artist.votes} votes - CLOSING ALL RELATED ISSUES`);
+
+            // NEW: Find all issues for this artist and close them
+            const artistKey = artist.id;
+            if (artistVotes.has(artistKey)) {
+                const artistData = artistVotes.get(artistKey);
+                issuesToClose.push(...artistData.issueNumbers);
+            }
+
+            return false; // Remove from pending
         }
-        return true;
+        return true; // Keep in pending
     });
 
     // Update stats
     stats.totalArtists = flagged.artists.length + pending.artists.length;
     stats.flaggedArtists = flagged.artists.length;
-    stats.votesToday = processedIssues.length;
-    stats.votesTotal += processedIssues.length;
+    stats.votesToday = processedIssues.length + issuesToClose.length;
+    stats.votesTotal += processedIssues.length + issuesToClose.length;
     stats.lastUpdated = now;
 
     flagged.version = now;
@@ -191,14 +201,23 @@ async function main() {
     fs.writeFileSync('data/stats.json', JSON.stringify(stats, null, 2));
 
     console.log(`\n=== Summary ===`);
-    console.log(`Processed ${processedIssues.length} issues`);
+    console.log(`Processed ${issues.length} total issues`);
     console.log(`${newlyFlagged} artists newly flagged`);
     console.log(`${pending.artists.length} artists pending (need ${MIN_VOTES} votes)`);
     console.log(`${flagged.artists.length} total flagged artists`);
+    console.log(`Closing ${processedIssues.length} duplicate/invalid issues`);
+    console.log(`Closing ${issuesToClose.length} issues (threshold reached)`);
 
+    // Close only invalid/duplicate issues
     for (const issueNumber of processedIssues) {
         await closeIssue(issueNumber);
-        console.log(`Closed issue #${issueNumber}`);
+        console.log(`Closed issue #${issueNumber} (invalid/duplicate)`);
+    }
+
+    // Close issues for artists that reached threshold
+    for (const issueNumber of issuesToClose) {
+        await closeIssue(issueNumber);
+        console.log(`Closed issue #${issueNumber} (artist flagged)`);
     }
 
     console.log('Done!');
