@@ -1,4 +1,4 @@
-// TrueTunes Spicetify Extension - Full Featured with GitHub OAuth
+// TrueTunes Spicetify Extension - Full Featured with Community Feed
 // Detects AI-generated music on Spotify
 
 (function TrueTunes() {
@@ -24,8 +24,8 @@
         githubAvatar: null,
         githubLinked: false,
         autoSkip: false,
-        autoHide: false,        // NEW: Auto-hide songs (safer)
-        autoDislike: false,     // RENAMED from autoDislike (dangerous)
+        autoHide: false,
+        autoDislike: false,
         showWarnings: true,
         highlightInPlaylists: true,
         verificationInterval: 30000
@@ -35,6 +35,18 @@
         totalVotes: 0,
         votedArtists: [],
         lastVerified: null
+    };
+
+    let communityFeed = {
+        recentActivity: [],
+        lastUpdated: null,
+        updateTimer: null
+    };
+
+    let historyView = {
+        mode: 'side-by-side', // 'open-only', 'closed-only', 'side-by-side', 'combined'
+        displayedCount: 20,
+        loadMoreStep: 20
     };
 
     // ===== GITHUB DEVICE FLOW OAUTH =====
@@ -69,10 +81,8 @@
 
             console.log('[TrueTunes] Device code received:', deviceData.user_code);
 
-            // Show modal with code
             showDeviceCodeModal(deviceData);
 
-            // Start polling for authorization
             try {
                 await pollForDeviceAuthorization(
                     deviceData.device_code,
@@ -84,11 +94,8 @@
 
             } catch (pollError) {
                 console.error('[TrueTunes] Polling error:', pollError);
-
-                // Clean up modal
                 document.getElementById('truetunes-device-modal')?.remove();
 
-                // Only show notification if it's not a user cancellation
                 if (pollError.message !== 'User cancelled') {
                     Spicetify.showNotification('❌ ' + pollError.message, true, 4000);
                 }
@@ -96,11 +103,8 @@
 
         } catch (error) {
             console.error('[TrueTunes] Device flow error:', error);
-
-            // Clean up any modals
             document.getElementById('truetunes-device-modal')?.remove();
 
-            // Show user-friendly error
             let errorMessage = 'Authentication failed';
             if (error.message.includes('Failed to fetch')) {
                 errorMessage = 'Cannot connect to authentication server. Is the proxy running?';
@@ -219,7 +223,6 @@
             cancelButton.addEventListener('click', () => {
                 modal.remove();
                 Spicetify.showNotification('Authentication cancelled', false, 2000);
-                // This will trigger the timeout in pollForDeviceAuthorization
             });
         }
 
@@ -238,15 +241,14 @@
 
     async function pollForDeviceAuthorization(deviceCode, interval, expiresIn) {
         const startTime = Date.now();
-        let currentInterval = (interval || 5) * 1000; // Start with initial interval
+        let currentInterval = (interval || 5) * 1000;
         const timeout = expiresIn * 1000;
 
         let pollTimer = null;
-        let isPolling = false; // Prevent overlapping polls
+        let isPolling = false;
 
         return new Promise((resolve, reject) => {
             const poll = async () => {
-                // Prevent overlapping polls
                 if (isPolling) {
                     console.log('[TrueTunes] Skipping poll - previous poll still in progress');
                     return;
@@ -254,7 +256,6 @@
 
                 isPolling = true;
 
-                // Check if expired
                 if (Date.now() - startTime > timeout) {
                     if (pollTimer) clearTimeout(pollTimer);
                     document.getElementById('truetunes-device-modal')?.remove();
@@ -282,28 +283,22 @@
                     const data = await response.json();
                     console.log('[TrueTunes] Poll response:', data);
 
-                    // Handle errors
                     if (data.error) {
                         if (data.error === 'authorization_pending') {
                             console.log('[TrueTunes] Still waiting for user authorization...');
                             isPolling = false;
-                            // Schedule next poll with current interval
                             pollTimer = setTimeout(poll, currentInterval);
                             return;
                         }
                         else if (data.error === 'slow_down') {
-                            // GitHub is telling us to slow down!
-                            // Update our interval to what GitHub suggests
                             if (data.interval) {
                                 currentInterval = data.interval * 1000;
                                 console.log(`[TrueTunes] Slowing down - new interval: ${data.interval}s`);
                             } else {
-                                // If no interval provided, add 5 seconds
                                 currentInterval += 5000;
                                 console.log(`[TrueTunes] Slowing down - new interval: ${currentInterval / 1000}s`);
                             }
                             isPolling = false;
-                            // Schedule next poll with NEW interval
                             pollTimer = setTimeout(poll, currentInterval);
                             return;
                         }
@@ -324,17 +319,14 @@
                         else {
                             console.error('[TrueTunes] Unexpected error:', data.error);
                             isPolling = false;
-                            // Continue polling
                             pollTimer = setTimeout(poll, currentInterval);
                             return;
                         }
                     }
 
-                    // SUCCESS!
                     if (data.access_token) {
                         console.log('[TrueTunes] ✓ Access token received!');
 
-                        // CRITICAL: Stop polling immediately
                         if (pollTimer) {
                             clearTimeout(pollTimer);
                             pollTimer = null;
@@ -342,14 +334,12 @@
 
                         isPolling = false;
 
-                        // Close modal
                         document.getElementById('truetunes-device-modal')?.remove();
 
-                        // Get user data
                         try {
                             const userData = await getUserData(data.access_token);
                             await completeGithubAuth(data.access_token, userData);
-                            resolve(); // SUCCESS!
+                            resolve();
                         } catch (err) {
                             console.error('[TrueTunes] Error getting user data:', err);
                             reject(err);
@@ -357,7 +347,6 @@
                         return;
                     }
 
-                    // If we get here, something unexpected happened
                     console.log('[TrueTunes] Unexpected response, continuing to poll...');
                     isPolling = false;
                     pollTimer = setTimeout(poll, currentInterval);
@@ -365,12 +354,10 @@
                 } catch (error) {
                     console.error('[TrueTunes] Poll error:', error);
                     isPolling = false;
-                    // Don't stop polling on network errors - continue trying
                     pollTimer = setTimeout(poll, currentInterval);
                 }
             };
 
-            // Start first poll immediately
             poll();
         });
     }
@@ -400,6 +387,7 @@
         Spicetify.showNotification(`✓ Logged in as ${userData.login}`, false, 3000);
 
         await verifyRecentVotes();
+        startCommunityFeedUpdates();
 
         const modal = document.getElementById('truetunes-modal');
         if (modal) {
@@ -415,6 +403,7 @@
         settings.githubLinked = false;
         votedArtists.clear();
         userStats = { totalVotes: 0, votedArtists: [], lastVerified: null };
+        stopCommunityFeedUpdates();
         saveSettings();
         saveUserStats();
         Spicetify.showNotification('Logged out from GitHub', false, 2000);
@@ -429,6 +418,11 @@
             if (saved) {
                 settings = { ...settings, ...JSON.parse(saved) };
             }
+
+            const savedHistoryView = localStorage.getItem('truetunes_history_view');
+            if (savedHistoryView) {
+                historyView = { ...historyView, ...JSON.parse(savedHistoryView) };
+            }
         } catch (e) {
             console.error('[TrueTunes] Error loading settings:', e);
         }
@@ -437,6 +431,7 @@
     function saveSettings() {
         try {
             localStorage.setItem('truetunes_settings', JSON.stringify(settings));
+            localStorage.setItem('truetunes_history_view', JSON.stringify(historyView));
         } catch (e) {
             console.error('[TrueTunes] Error saving settings:', e);
         }
@@ -458,6 +453,75 @@
             localStorage.setItem('truetunes_user_stats', JSON.stringify(userStats));
         } catch (e) {
             console.error('[TrueTunes] Error saving stats:', e);
+        }
+    }
+
+    // ===== COMMUNITY FEED =====
+
+    async function fetchCommunityActivity() {
+        try {
+            console.log('[TrueTunes] Fetching community activity...');
+
+            const headers = settings.githubToken ? {
+                'Authorization': `token ${settings.githubToken}`
+            } : {};
+
+            const response = await fetch(`${GITHUB_API}?labels=vote&state=all&per_page=50&sort=updated&direction=desc`, { headers });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const issues = await response.json();
+
+            communityFeed.recentActivity = issues.map(issue => {
+                const body = issue.body || '';
+                const artistNameMatch = issue.title.match(/Vote:\s*(.+)/);
+                const artistIdMatch = body.match(/Artist ID:\s*([^\s\n]+)/);
+                const platformMatch = body.match(/Platform:\s*(\w+)/i);
+
+                return {
+                    issueNumber: issue.number,
+                    artistName: artistNameMatch ? artistNameMatch[1] : 'Unknown Artist',
+                    artistId: artistIdMatch ? artistIdMatch[1] : null,
+                    platform: platformMatch ? platformMatch[1] : 'Unknown',
+                    reporter: issue.user.login,
+                    reporterAvatar: issue.user.avatar_url,
+                    createdAt: issue.created_at,
+                    updatedAt: issue.updated_at,
+                    state: issue.state,
+                    comments: issue.comments
+                };
+            }).filter(activity => activity.artistId);
+
+            communityFeed.lastUpdated = new Date().toISOString();
+
+            console.log(`[TrueTunes] Fetched ${communityFeed.recentActivity.length} community activities`);
+
+            if (currentTab === 'community') {
+                renderTrueTunesPanel();
+            }
+        } catch (error) {
+            console.error('[TrueTunes] Error fetching community activity:', error);
+        }
+    }
+
+    function startCommunityFeedUpdates() {
+        fetchCommunityActivity();
+
+        if (communityFeed.updateTimer) {
+            clearInterval(communityFeed.updateTimer);
+        }
+
+        communityFeed.updateTimer = setInterval(() => {
+            fetchCommunityActivity();
+        }, 10 * 60 * 1000);
+    }
+
+    function stopCommunityFeedUpdates() {
+        if (communityFeed.updateTimer) {
+            clearInterval(communityFeed.updateTimer);
+            communityFeed.updateTimer = null;
         }
     }
 
@@ -568,9 +632,22 @@
         `;
         }
 
-        // LOGGED IN - Remove bottom padding gap
+        // Logged in - show profile + stats
+        const totalFlagged = flaggedArtists.size;
+        const MIN_VOTES = 10;
+
+        // Get last 3 votes with progress
+        const recentVotes = userStats.votedArtists.slice(0, 3).map(vote => {
+            const pending = window.trueTunesPending?.get(vote.artistId);
+            return {
+                ...vote,
+                progress: pending ? { current: pending.votes, needed: MIN_VOTES } : null
+            };
+        });
+
         return `
         <div style="padding: 24px; height: 100%; display: flex; flex-direction: column;">
+            <!-- GitHub Profile Card -->
             <div style="display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, rgba(126, 34, 206, 0.2) 0%, rgba(219, 39, 119, 0.2) 100%); padding: 24px; border-radius: 16px; margin-bottom: 24px;">
                 <img src="${settings.githubAvatar}" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #7e22ce;">
                 <div style="flex: 1;">
@@ -587,22 +664,181 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
-                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 36px; font-weight: 700; color: #7e22ce; margin-bottom: 8px;">${userStats.totalVotes}</div>
-                    <div style="color: #999; font-size: 14px;">Total Votes</div>
+            <!-- Stats Grid -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+                <div style="background: rgba(126, 34, 206, 0.1); border: 1px solid rgba(126, 34, 206, 0.3); padding: 16px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 700; color: #7e22ce;">${totalFlagged}</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 4px;">Total Flagged</div>
                 </div>
-                <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; text-align: center;">
-                    <div style="font-size: 36px; font-weight: 700; color: #db2777; margin-bottom: 8px;">${flaggedArtists.size}</div>
-                    <div style="color: #999; font-size: 14px;">Flagged Artists</div>
+                <div style="background: rgba(219, 39, 119, 0.1); border: 1px solid rgba(219, 39, 119, 0.3); padding: 16px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 700; color: #db2777;">${userStats.totalVotes}</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 4px;">Your Votes</div>
+                </div>
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 16px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: 700; color: #22c55e;">${Math.round((userStats.totalVotes / Math.max(totalFlagged, 1)) * 100)}%</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 4px;">Contribution</div>
                 </div>
             </div>
 
+            <!-- Recent Activity -->
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">🔥 Recent Activity</h3>
+            
+            <div style="margin-bottom: 16px;">
+                ${recentVotes.length > 0 ? recentVotes.map(vote => `
+                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
+                       target="_blank"
+                       style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s;"
+                       onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
+                       onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
+                                <div style="font-size: 11px; color: #999;">
+                                    <span style="color: ${vote.state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">Issue #${vote.issueNumber}</span>
+                                    <span style="margin: 0 6px;">•</span>
+                                    <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 12px;">
+                                <span style="background: ${vote.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${vote.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                    ${vote.state}
+                                </span>
+                                ${vote.progress ? `
+                                    <span style="background: rgba(126, 34, 206, 0.2); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
+                                        ${vote.progress.current}/${vote.progress.needed} votes
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ${vote.progress ? `
+                            <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden; margin-top: 8px;">
+                                <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${(vote.progress.current / vote.progress.needed) * 100}%; transition: width 0.3s ease;"></div>
+                            </div>
+                        ` : ''}
+                    </a>
+                `).join('') : '<div style="text-align: center; color: #999; padding: 40px;">No votes yet</div>'}
+            </div>
+
+            <!-- Last Verified -->
             ${userStats.lastVerified ? `
                 <div style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; font-size: 12px; color: #999; text-align: center;">
                     Last verified: ${new Date(userStats.lastVerified).toLocaleString()}
                 </div>
             ` : ''}
+        </div>
+    `;
+    }
+
+    function createCommunityTab() {
+        if (!settings.githubLinked) {
+            return `
+            <div style="padding: 60px 40px; text-align: center; color: #999;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🌍</div>
+                <p>Connect your GitHub account to view community activity</p>
+            </div>
+        `;
+        }
+
+        const formatTimeAgo = (dateString) => {
+            const now = new Date();
+            const past = new Date(dateString);
+            const diffMs = now - past;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        };
+
+        const lastUpdatedText = communityFeed.lastUpdated
+            ? `Updated ${formatTimeAgo(communityFeed.lastUpdated)}`
+            : 'Never updated';
+
+        return `
+        <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0;">
+                <h3 style="font-size: 18px; font-weight: 600;">🌍 Community Activity</h3>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="color: #999; font-size: 12px;">${lastUpdatedText}</span>
+                    <button id="truetunes-refresh-community" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; flex-shrink: 0;">
+                <div style="background: rgba(126, 34, 206, 0.1); border: 1px solid rgba(126, 34, 206, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: #7e22ce;">${communityFeed.recentActivity.length}</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Recent Votes</div>
+                </div>
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: #22c55e;">${communityFeed.recentActivity.filter(a => a.state === 'open').length}</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Open Issues</div>
+                </div>
+                <div style="background: rgba(219, 39, 119, 0.1); border: 1px solid rgba(219, 39, 119, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700; color: #db2777;">${new Set(communityFeed.recentActivity.map(a => a.reporter)).size}</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Active Users</div>
+                </div>
+            </div>
+
+            <!-- Activity Feed -->
+            <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                ${communityFeed.recentActivity.length > 0 ? communityFeed.recentActivity.map(activity => `
+                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${activity.issueNumber}" 
+                       target="_blank"
+                       style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid ${activity.state === 'open' ? '#22c55e' : '#666'};"
+                       onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
+                       onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                        
+                        <!-- Header Row -->
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <img src="${activity.reporterAvatar}" 
+                                 style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; font-size: 13px; color: #7e22ce;">@${activity.reporter}</div>
+                                <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(activity.createdAt)}</div>
+                            </div>
+                            <span style="background: ${activity.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${activity.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700;">
+                                ${activity.state}
+                            </span>
+                        </div>
+
+                        <!-- Artist Info -->
+                        <div style="margin-left: 38px;">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${activity.artistName}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #999;">
+                                <span>🎵 ${activity.platform}</span>
+                                <span>•</span>
+                                <span style="color: #7e22ce; font-weight: 600;">Issue #${activity.issueNumber}</span>
+                                ${activity.comments > 0 ? `
+                                    <span>•</span>
+                                    <span>💬 ${activity.comments}</span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </a>
+                `).join('') : `
+                    <div style="text-align: center; color: #999; padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+                        <p>No community activity yet</p>
+                        <button id="truetunes-fetch-community" style="margin-top: 16px; background: #7e22ce; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            Load Activity
+                        </button>
+                    </div>
+                `}
+            </div>
+
+            <!-- Auto-Update Notice -->
+            <div style="margin-top: 16px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; font-size: 11px; color: #60a5fa; text-align: center; flex-shrink: 0;">
+                ⏱️ Auto-updates every 10 minutes
+            </div>
         </div>
     `;
     }
@@ -618,11 +854,9 @@
         }
 
         const totalFlagged = flaggedArtists.size;
-        const MIN_VOTES = 10; // Threshold for flagging
+        const MIN_VOTES = 10;
 
-        // Get recent votes with progress info
         const recentVotes = userStats.votedArtists.slice(0, 5).map(vote => {
-            // Check if artist is in pending (still collecting votes)
             const pending = window.trueTunesPending?.get(vote.artistId);
             return {
                 ...vote,
@@ -690,6 +924,159 @@
     `;
     }
 
+    function createHistoryTab() {
+        if (!settings.githubLinked) {
+            return `
+            <div style="padding: 60px 40px; text-align: center; color: #999;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📜</div>
+                <p>Connect your GitHub account to view your voting history</p>
+            </div>
+        `;
+        }
+
+        const openIssues = userStats.votedArtists.filter(v => v.state === 'open')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const closedIssues = userStats.votedArtists.filter(v => v.state === 'closed')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // View mode labels
+        const viewLabels = {
+            'open-only': '🟢 Open Only',
+            'closed-only': '⚫ Closed Only',
+            'side-by-side': '📊 Side-by-Side',
+            'combined': '📋 Combined'
+        };
+
+        // Render based on view mode
+        let contentHTML = '';
+
+        if (historyView.mode === 'open-only') {
+            const displayedIssues = openIssues.slice(0, historyView.displayedCount);
+            contentHTML = `
+                <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <div style="flex: 1; background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 12px;">
+                        <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                            ${displayedIssues.length > 0 ? displayedIssues.map((vote, index) => renderCompactHistoryItem(vote, 'open', index === displayedIssues.length - 1)).join('') : '<div style="text-align: center; color: #666; padding: 40px; font-size: 13px;">No open issues</div>'}
+                        </div>
+                    </div>
+                    ${openIssues.length > historyView.displayedCount ? `
+                        <button id="load-more-history" style="width: 100%; padding: 12px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e; border-radius: 8px; cursor: pointer; font-weight: 600; flex-shrink: 0;">
+                            Load More (${openIssues.length - historyView.displayedCount} remaining)
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        } else if (historyView.mode === 'closed-only') {
+            const displayedIssues = closedIssues.slice(0, historyView.displayedCount);
+            contentHTML = `
+                <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <div style="flex: 1; background: rgba(100, 100, 100, 0.05); border: 1px solid rgba(100, 100, 100, 0.2); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 12px;">
+                        <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                            ${displayedIssues.length > 0 ? displayedIssues.map((vote, index) => renderCompactHistoryItem(vote, 'closed', index === displayedIssues.length - 1)).join('') : '<div style="text-align: center; color: #666; padding: 40px; font-size: 13px;">No closed issues</div>'}
+                        </div>
+                    </div>
+                    ${closedIssues.length > historyView.displayedCount ? `
+                        <button id="load-more-history" style="width: 100%; padding: 12px; background: rgba(100, 100, 100, 0.1); border: 1px solid rgba(100, 100, 100, 0.3); color: #999; border-radius: 8px; cursor: pointer; font-weight: 600; flex-shrink: 0;">
+                            Load More (${closedIssues.length - historyView.displayedCount} remaining)
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        } else if (historyView.mode === 'side-by-side') {
+            contentHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 100%; margin-bottom: 12px;">
+                    <div style="display: flex; flex-direction: column; background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 12px; overflow: hidden; min-height: 0;">
+                        <div style="padding: 12px 16px; background: rgba(34, 197, 94, 0.1); border-bottom: 1px solid rgba(34, 197, 94, 0.2); flex-shrink: 0;">
+                            <div style="font-weight: 600; font-size: 14px; color: #22c55e; display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
+                                Open Issues (${openIssues.length})
+                            </div>
+                        </div>
+                        <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                            ${openIssues.length > 0 ? openIssues.map((vote, index) => renderCompactHistoryItem(vote, 'open', index === openIssues.length - 1)).join('') : '<div style="text-align: center; color: #666; padding: 40px 12px; font-size: 13px;">No open issues</div>'}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; background: rgba(100, 100, 100, 0.05); border: 1px solid rgba(100, 100, 100, 0.2); border-radius: 12px; overflow: hidden; min-height: 0;">
+                        <div style="padding: 12px 16px; background: rgba(100, 100, 100, 0.1); border-bottom: 1px solid rgba(100, 100, 100, 0.2); flex-shrink: 0;">
+                            <div style="font-weight: 600; font-size: 14px; color: #999; display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 8px; height: 8px; border-radius: 50%; background: #666;"></div>
+                                Closed Issues (${closedIssues.length})
+                            </div>
+                        </div>
+                        <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                            ${closedIssues.length > 0 ? closedIssues.map((vote, index) => renderCompactHistoryItem(vote, 'closed', index === closedIssues.length - 1)).join('') : '<div style="text-align: center; color: #666; padding: 40px 12px; font-size: 13px;">No closed issues</div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (historyView.mode === 'combined') {
+            const allIssues = [...userStats.votedArtists].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const displayedIssues = allIssues.slice(0, historyView.displayedCount);
+            contentHTML = `
+                <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <div style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; margin-bottom: 12px;">
+                        <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                            ${displayedIssues.length > 0 ? displayedIssues.map((vote, index) => renderCompactHistoryItem(vote, vote.state, index === displayedIssues.length - 1)).join('') : '<div style="text-align: center; color: #666; padding: 40px; font-size: 13px;">No issues</div>'}
+                        </div>
+                    </div>
+                    ${allIssues.length > historyView.displayedCount ? `
+                        <button id="load-more-history" style="width: 100%; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; border-radius: 8px; cursor: pointer; font-weight: 600; flex-shrink: 0;">
+                            Load More (${allIssues.length - historyView.displayedCount} remaining)
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        return `
+        <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+            <!-- Header (doesn't fade) -->
+            <div style="padding: 24px 24px 0 24px; flex-shrink: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <h3 style="font-size: 18px; font-weight: 600;">📜 Voting History</h3>
+                        <button id="toggle-history-view" style="padding: 6px 12px; background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+                            ${viewLabels[historyView.mode]}
+                        </button>
+                    </div>
+                    <span style="color: #999; font-size: 14px;">${userStats.votedArtists.length} total votes</span>
+                </div>
+            </div>
+            
+            <!-- Content area (fades on toggle) -->
+            <div id="history-content-area" style="flex: 1; display: flex; flex-direction: column; overflow-y: hidden; overflow-x: hidden; min-height: 0; padding: 0 24px 24px 24px;">
+                ${contentHTML}
+            </div>
+        </div>
+    `;
+    }
+
+    function renderCompactHistoryItem(vote, state, isLast) {
+        return `
+            <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
+               target="_blank"
+               style="display: block; padding: 12px 16px; text-decoration: none; color: white; transition: all 0.2s; ${!isLast ? 'border-bottom: 1px solid rgba(255, 255, 255, 0.1);' : ''}"
+               onmouseover="this.style.background='rgba(255, 255, 255, 0.05)';"
+               onmouseout="this.style.background='transparent';">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1; min-width: 0; margin-right: 12px;">
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
+                        <div style="font-size: 11px; color: #999;">
+                            <span style="color: ${state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">Issue #${vote.issueNumber}</span>
+                            <span style="margin: 0 6px;">•</span>
+                            <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        </div>
+                    </div>
+                    <span style="background: ${state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${state === 'open' ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap;">
+                        ${state}
+                    </span>
+                </div>
+            </a>
+        `;
+    }
+
     function createSettingsTab() {
         return `
         <div style="padding: 24px;">
@@ -722,7 +1109,6 @@
                 </div>
             </label>
 
-            <!-- Auto-Hide Songs (New safer option) -->
             <label style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255, 200, 0, 0.05); border: 1px solid rgba(255, 200, 0, 0.2); border-radius: 10px; margin-bottom: 12px; cursor: pointer;">
                 <input type="checkbox" id="truetunes-setting-hide" ${settings.autoHide ? 'checked' : ''} 
                        style="width: 20px; height: 20px; cursor: pointer; accent-color: #f59e0b;">
@@ -735,7 +1121,6 @@
                 </div>
             </label>
 
-            <!-- Auto-Remove from Library (Dangerous option with warning) -->
             <label style="display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; margin-bottom: 24px; cursor: pointer;">
                 <input type="checkbox" id="truetunes-setting-remove" ${settings.autoDislike ? 'checked' : ''} 
                        style="width: 20px; height: 20px; cursor: pointer; accent-color: #ef4444;">
@@ -751,7 +1136,6 @@
                 </div>
             </label>
 
-            <!-- Verification Section -->
             <div style="padding: 16px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                     <span style="font-weight: 600;">Verification Interval</span>
@@ -765,111 +1149,44 @@
     `;
     }
 
-    function createHistoryTab() {
-        if (!settings.githubLinked) {
-            return `
-            <div style="padding: 60px 40px; text-align: center; color: #999;">
-                <div style="font-size: 48px; margin-bottom: 16px;">📜</div>
-                <p>Connect your GitHub account to view your voting history</p>
-            </div>
-        `;
-        }
-
-        const openIssues = userStats.votedArtists.filter(v => v.state === 'open')
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        const closedIssues = userStats.votedArtists.filter(v => v.state === 'closed')
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        return `
-        <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
-            <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0;">
-                <h3 style="font-size: 18px; font-weight: 600;">📜 Voting History</h3>
-                <span style="color: #999; font-size: 14px;">${userStats.votedArtists.length} total votes</span>
-            </div>
-            
-            <!-- Split View Container -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0;">
-                <!-- Open Issues Column -->
-                <div style="display: flex; flex-direction: column; background: rgba(34, 197, 94, 0.05); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 12px; overflow: hidden;">
-                    <div style="padding: 12px 16px; background: rgba(34, 197, 94, 0.1); border-bottom: 1px solid rgba(34, 197, 94, 0.2); flex-shrink: 0;">
-                        <div style="font-weight: 600; font-size: 14px; color: #22c55e; display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></div>
-                            Open Issues (${openIssues.length})
-                        </div>
-                    </div>
-                    <div style="flex: 1; overflow-y: auto; padding: 12px;">
-                        ${openIssues.length > 0 ? openIssues.map(vote => `
-                            <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
-                               target="_blank"
-                               style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid #22c55e;"
-                               onmouseover="this.style.background='rgba(34, 197, 94, 0.1)'; this.style.transform='translateX(4px)';"
-                               onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
-                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
-                                <div style="font-size: 11px; color: #999;">
-                                    <span style="color: #22c55e; font-weight: 600;">Issue #${vote.issueNumber}</span>
-                                    <span style="margin: 0 6px;">•</span>
-                                    <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                </div>
-                            </a>
-                        `).join('') : '<div style="text-align: center; color: #666; padding: 40px 12px; font-size: 13px;">No open issues</div>'}
-                    </div>
-                </div>
-
-                <!-- Closed Issues Column -->
-                <div style="display: flex; flex-direction: column; background: rgba(100, 100, 100, 0.05); border: 1px solid rgba(100, 100, 100, 0.2); border-radius: 12px; overflow: hidden;">
-                    <div style="padding: 12px 16px; background: rgba(100, 100, 100, 0.1); border-bottom: 1px solid rgba(100, 100, 100, 0.2); flex-shrink: 0;">
-                        <div style="font-weight: 600; font-size: 14px; color: #999; display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #666;"></div>
-                            Closed Issues (${closedIssues.length})
-                        </div>
-                    </div>
-                    <div style="flex: 1; overflow-y: auto; padding: 12px;">
-                        ${closedIssues.length > 0 ? closedIssues.map(vote => `
-                            <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
-                               target="_blank"
-                               style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid #666;"
-                               onmouseover="this.style.background='rgba(100, 100, 100, 0.1)'; this.style.transform='translateX(4px)';"
-                               onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
-                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
-                                <div style="font-size: 11px; color: #999;">
-                                    <span style="color: #999; font-weight: 600;">Issue #${vote.issueNumber}</span>
-                                    <span style="margin: 0 6px;">•</span>
-                                    <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                </div>
-                            </a>
-                        `).join('') : '<div style="text-align: center; color: #666; padding: 40px 12px; font-size: 13px;">No closed issues</div>'}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    }
-
     function renderTrueTunesPanel() {
         const panel = document.getElementById('truetunes-panel-content');
         if (!panel) return;
 
         const tabs = {
             account: createAccountTab(),
-            stats: createStatsTab(),
-            settings: createSettingsTab(),
-            history: createHistoryTab()
+            community: createCommunityTab(),
+            history: createHistoryTab(),
+            settings: createSettingsTab()
         };
 
-        // Fade out
+        // For history tab, only fade the content area, not the header
+        if (currentTab === 'history') {
+            const historyContent = document.getElementById('history-content-area');
+            if (historyContent) {
+                historyContent.style.opacity = '0';
+
+                setTimeout(() => {
+                    panel.innerHTML = tabs[currentTab];
+                    const newContent = document.getElementById('history-content-area');
+                    if (newContent) {
+                        // Force reflow before setting opacity
+                        newContent.offsetHeight;
+                        newContent.style.opacity = '1';
+                    }
+                    attachTabEventListeners();
+                }, 150);
+                return;
+            }
+        }
+
+        // Standard fade for other tabs
         panel.style.opacity = '0';
         panel.style.transition = 'opacity 0.15s ease';
 
-        // Wait for fade out, then update content
         setTimeout(() => {
             panel.innerHTML = tabs[currentTab];
-
-            // Fade in
             panel.style.opacity = '1';
-
-            // Attach event listeners after content is rendered
             attachTabEventListeners();
         }, 150);
     }
@@ -882,6 +1199,24 @@
                 if (confirm('Are you sure you want to logout?')) {
                     logoutGithub();
                 }
+            });
+        } else if (currentTab === 'community') {
+            document.getElementById('truetunes-refresh-community')?.addEventListener('click', async () => {
+                const btn = document.getElementById('truetunes-refresh-community');
+                if (btn) {
+                    btn.textContent = '⏳ Refreshing...';
+                    btn.disabled = true;
+                }
+                await fetchCommunityActivity();
+                if (btn) {
+                    btn.textContent = '🔄 Refresh';
+                    btn.disabled = false;
+                }
+                Spicetify.showNotification('✓ Community feed refreshed', false, 2000);
+            });
+
+            document.getElementById('truetunes-fetch-community')?.addEventListener('click', async () => {
+                await fetchCommunityActivity();
             });
         } else if (currentTab === 'settings') {
             document.getElementById('truetunes-setting-warnings')?.addEventListener('change', (e) => {
@@ -900,7 +1235,6 @@
                 saveSettings();
             });
 
-            // NEW: Auto-hide handler
             document.getElementById('truetunes-setting-hide')?.addEventListener('change', (e) => {
                 settings.autoHide = e.target.checked;
                 saveSettings();
@@ -909,10 +1243,8 @@
                 }
             });
 
-            // UPDATED: Auto-remove with confirmation
             document.getElementById('truetunes-setting-remove')?.addEventListener('change', (e) => {
                 if (e.target.checked) {
-                    // Show confirmation dialog
                     const confirmed = confirm(
                         '⚠️ WARNING: This will automatically remove AI-generated tracks from your library.\n\n' +
                         'This action is permanent and cannot be undone.\n\n' +
@@ -925,7 +1257,6 @@
                         saveSettings();
                         Spicetify.showNotification('⚠️ Auto-remove enabled - use with caution', true, 3000);
                     } else {
-                        // User cancelled, uncheck the box
                         e.target.checked = false;
                     }
                 } else {
@@ -939,34 +1270,59 @@
                 await verifyRecentVotes();
                 renderTrueTunesPanel();
             });
-        }
-    }
+        } else if (currentTab === 'history') {
+            // Single toggle button that cycles through views
+            const toggleBtn = document.getElementById('toggle-history-view');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    // Cycle through views
+                    const modes = ['open-only', 'closed-only', 'side-by-side', 'combined'];
+                    const currentIndex = modes.indexOf(historyView.mode);
+                    const nextIndex = (currentIndex + 1) % modes.length;
+                    historyView.mode = modes[nextIndex];
+                    historyView.displayedCount = 20; // Reset count when changing view
+                    saveSettings(); // Persist the view mode
 
-    async function verifyGithubUsername(username) {
-        try {
-            const response = await fetch(`https://api.github.com/users/${username}`);
-            if (response.status === 200) {
-                const data = await response.json();
-                return { valid: true, avatar: data.avatar_url, name: data.name || username };
+                    // Fade only the content area
+                    const contentArea = document.getElementById('history-content-area');
+                    if (contentArea) {
+                        contentArea.style.opacity = '0';
+                        setTimeout(() => {
+                            renderTrueTunesPanel();
+                        }, 150);
+                    } else {
+                        renderTrueTunesPanel();
+                    }
+                });
+
+                // Hover effect
+                toggleBtn.addEventListener('mouseenter', () => {
+                    toggleBtn.style.background = 'rgba(126, 34, 206, 0.3)';
+                    toggleBtn.style.transform = 'scale(1.05)';
+                });
+
+                toggleBtn.addEventListener('mouseleave', () => {
+                    toggleBtn.style.background = 'rgba(126, 34, 206, 0.2)';
+                    toggleBtn.style.transform = 'scale(1)';
+                });
             }
-            return { valid: false };
-        } catch (e) {
-            console.error('[TrueTunes] Error verifying GitHub username:', e);
-            return { valid: false };
+
+            // Load more button
+            document.getElementById('load-more-history')?.addEventListener('click', () => {
+                historyView.displayedCount += historyView.loadMoreStep;
+                renderTrueTunesPanel();
+            });
         }
     }
 
     function showTrueTunesPanel() {
-        // Check if modal already exists
         let modal = document.getElementById('truetunes-modal');
 
         if (modal) {
-            // Modal exists - just update the content and tabs
             updateTrueTunesPanelContent();
             return;
         }
 
-        // Create new modal
         modal = document.createElement('div');
         modal.id = 'truetunes-modal';
         modal.style.cssText = `
@@ -988,9 +1344,9 @@
         panel.id = 'truetunes-panel';
         panel.style.cssText = `
         background: #121212;
-        width: 700px;
+        width: 750px;
         max-width: 90vw;
-        height: 800px;
+        height: 820px;
         max-height: 90vh;
         border-radius: 16px;
         display: flex;
@@ -1031,7 +1387,7 @@
 
         const tabs = [
             { id: 'account', icon: '👤', label: 'Account' },
-            { id: 'stats', icon: '📊', label: 'Stats' },
+            { id: 'community', icon: '🌍', label: 'Community' },
             { id: 'history', icon: '📜', label: 'History' },
             { id: 'settings', icon: '⚙️', label: 'Settings' }
         ];
@@ -1056,7 +1412,7 @@
 
             button.addEventListener('click', () => {
                 currentTab = tab.id;
-                updateTrueTunesPanelContent(); // Just update content, don't recreate modal
+                updateTrueTunesPanelContent();
             });
 
             button.addEventListener('mouseenter', () => {
@@ -1081,7 +1437,9 @@
         content.style.cssText = `
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden;
         color: white;
+        min-height: 0;
     `;
 
         panel.appendChild(header);
@@ -1091,7 +1449,6 @@
 
         document.body.appendChild(modal);
 
-        // Close handlers
         document.getElementById('truetunes-close').addEventListener('click', () => {
             modal.remove();
         });
@@ -1102,12 +1459,10 @@
             }
         });
 
-        // Render initial content
         renderTrueTunesPanel();
     }
 
     function updateTrueTunesPanelContent() {
-        // Update tab buttons
         const tabButtons = document.querySelectorAll('.truetunes-tab');
         tabButtons.forEach(button => {
             const tabId = button.dataset.tab;
@@ -1118,19 +1473,16 @@
             button.style.borderBottom = `2px solid ${isActive ? '#7e22ce' : 'transparent'}`;
         });
 
-        // Update content
         renderTrueTunesPanel();
     }
 
     function createTrueTunesButton() {
-        // Find the top bar (where profile button is)
         const topBar = document.querySelector('.main-topBar-container');
         if (!topBar) {
             setTimeout(createTrueTunesButton, 500);
             return;
         }
 
-        // Check if button already exists
         if (document.getElementById('truetunes-button')) return;
 
         const button = document.createElement('button');
@@ -1157,7 +1509,6 @@
             </svg>
         `;
 
-        // Notification badge if not linked
         if (!settings.githubLinked) {
             const badge = document.createElement('div');
             badge.style.cssText = `
@@ -1185,7 +1536,6 @@
 
         button.addEventListener('click', showTrueTunesPanel);
 
-        // Find the user widget and insert before it
         const userWidget = topBar.querySelector('[data-testid="user-widget-link"]');
         if (userWidget && userWidget.parentElement) {
             userWidget.parentElement.insertBefore(button, userWidget.parentElement.firstChild);
@@ -1225,7 +1575,6 @@
             const response = await fetch('https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/pending.json?t=' + Date.now());
             const data = await response.json();
 
-            // Store pending artists with their vote counts
             window.trueTunesPending = new Map();
             data.artists.forEach(artist => {
                 if (artist.platforms && artist.platforms.spotify) {
@@ -1279,11 +1628,9 @@
                 setTimeout(() => Spicetify.Player.next(), 500);
             }
 
-            // NEW: Auto-hide functionality (safer)
             if (settings.autoHide) {
                 try {
                     const uri = Spicetify.Player.data.track.uri;
-                    // Use Spotify's "hide" feature instead of remove
                     Spicetify.Platform.PlayerAPI.skipToNext();
                     console.log('[TrueTunes] Track hidden:', uri);
                 } catch (error) {
@@ -1291,7 +1638,6 @@
                 }
             }
 
-            // Auto-remove (dangerous, with user confirmation required)
             if (settings.autoDislike) {
                 try {
                     const uri = Spicetify.Player.data.track.uri;
@@ -1361,13 +1707,11 @@
                 }
             }
 
-            /* Smooth content transitions */
             #truetunes-panel-content {
                 transition: opacity 0.15s ease;
                 overflow-y: visible !important;
             }
 
-            /* Scrollable sections within tabs */
             #truetunes-panel-content > div > div[style*="overflow-y: auto"] {
                 scrollbar-width: thin;
                 scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05);
@@ -1391,9 +1735,16 @@
                background: rgba(126, 34, 206, 0.7);
             }
 
-            /* Tab button transitions */
             .truetunes-tab {
                 transition: all 0.2s ease !important;
+            }
+            
+            #toggle-history-view {
+                transition: all 0.2s ease !important;
+            }
+            
+            #history-content-area {
+                transition: opacity 0.15s ease !important;
             }
 
             .truetunes-flagged-row {
@@ -1470,21 +1821,44 @@
                 background: rgba(100, 100, 100, 0.2);
             }
 
-            #truetunes-panel-content::-webkit-scrollbar {
-                width: 8px;
+            #truetunes-panel-content > div > div[style*="overflow-y: auto"] {
+                scrollbar-width: thin !important;
+                scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05) !important;
+            }
+            
+            #history-content-area > div > div[style*="overflow-y: auto"],
+            #history-content-area > div > div > div[style*="overflow-y: auto"] {
+                scrollbar-width: thin !important;
+                scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05) !important;
             }
 
-            #truetunes-panel-content::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.05);
+            #truetunes-panel-content::-webkit-scrollbar,
+            #history-content-area::-webkit-scrollbar,
+            #history-content-area *::-webkit-scrollbar,
+            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar {
+                width: 8px !important;
             }
 
-            #truetunes-panel-content::-webkit-scrollbar-thumb {
-                background: rgba(126, 34, 206, 0.5);
-                border-radius: 4px;
+            #truetunes-panel-content::-webkit-scrollbar-track,
+            #history-content-area::-webkit-scrollbar-track,
+            #history-content-area *::-webkit-scrollbar-track,
+            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05) !important;
             }
 
-            #truetunes-panel-content::-webkit-scrollbar-thumb:hover {
-                background: rgba(126, 34, 206, 0.7);
+            #truetunes-panel-content::-webkit-scrollbar-thumb,
+            #history-content-area::-webkit-scrollbar-thumb,
+            #history-content-area *::-webkit-scrollbar-thumb,
+            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+                background: rgba(126, 34, 206, 0.5) !important;
+                border-radius: 4px !important;
+            }
+
+            #truetunes-panel-content::-webkit-scrollbar-thumb:hover,
+            #history-content-area::-webkit-scrollbar-thumb:hover,
+            #history-content-area *::-webkit-scrollbar-thumb:hover,
+            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+                background: rgba(126, 34, 206, 0.7) !important;
             }
         `;
             document.head.appendChild(style);
@@ -1562,7 +1936,6 @@
 
             buttonContainer.insertBefore(voteButton, buttonContainer.firstChild);
         } catch (e) {
-            // Silently fail
         }
     }
 
@@ -1580,24 +1953,6 @@
 
             artistLink.parentElement.appendChild(badge);
         } catch (e) {
-            // Silently fail
-        }
-    }
-
-    function updateButtonsForArtist(artistId) {
-        try {
-            const rows = document.querySelectorAll('[data-testid="tracklist-row"], .main-trackList-trackListRow');
-
-            rows.forEach(row => {
-                const rowArtistId = getArtistIdFromRow(row);
-                if (rowArtistId === artistId) {
-                    const existing = row.querySelector('.truetunes-vote-button');
-                    if (existing) existing.remove();
-                    addVoteButtonToRow(row);
-                }
-            });
-        } catch (e) {
-            console.error('[TrueTunes] Error updating buttons:', e);
         }
     }
 
@@ -1624,7 +1979,6 @@
                         row.classList.remove('truetunes-flagged-row');
                     }
                 } catch (e) {
-                    // Continue
                 }
             });
         } catch (e) {
@@ -1672,6 +2026,7 @@
 
             if (settings.githubLinked) {
                 setTimeout(() => verifyRecentVotes(), 3000);
+                setTimeout(() => startCommunityFeedUpdates(), 5000);
             }
 
             Spicetify.Player.addEventListener('songchange', () => {
