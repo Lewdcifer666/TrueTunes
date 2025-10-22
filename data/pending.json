@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-19T23:10:59.778Z",
-  "updated": "2025-10-19T23:10:59.778Z",
+  "version": "2025-10-22T20:49:26.335Z",
+  "updated": "2025-10-22T20:49:26.335Z",
   "artists": [
     {
       "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
@@ -25,6 +25,18 @@
         "Lewdcifer666"
       ],
       "added": "2025-10-19T23:10:59.777Z"
+    },
+    {
+      "id": "spotify:0a97V3mDhGyNg93Dcf9Ahj",
+      "name": "Aventhis",
+      "platforms": {
+        "spotify": "0a97V3mDhGyNg93Dcf9Ahj"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-22T20:49:26.335Z"
     }
   ]
 }
