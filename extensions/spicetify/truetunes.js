@@ -1685,6 +1685,149 @@
         }
     }
 
+    async function getArtistNameFromUri(uri) {
+        try {
+            const artistId = uri.split(':')[2];
+
+            // Try to get from cached flagged artists first
+            const flagged = flaggedArtists.get(artistId);
+            if (flagged?.name) {
+                return flagged.name;
+            }
+
+            // Try to get from Spotify API
+            const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${artistId}`);
+            if (response?.name) {
+                return response.name;
+            }
+        } catch (e) {
+            console.error('[TrueTunes] Error fetching artist name:', e);
+        }
+
+        return "Unknown Artist";
+    }
+
+    function getCurrentArtistPageId() {
+        try {
+            console.log('[TrueTunes] 🔍 Looking for artist ID...');
+
+            if (typeof Spicetify !== 'undefined' && Spicetify.Platform?.History) {
+                try {
+                    const pathname = Spicetify.Platform.History.location.pathname;
+                    const match = pathname.match(/\/artist\/([a-zA-Z0-9]+)/);
+                    if (match) {
+                        console.log('[TrueTunes] ✅ Artist ID from Spicetify pathname:', match[1]);
+                        return match[1];
+                    }
+                } catch (e) { }
+            }
+
+            const urlMatch = window.location.pathname.match(/\/artist\/([a-zA-Z0-9]+)/);
+            if (urlMatch) {
+                console.log('[TrueTunes] ✅ Artist ID from URL:', urlMatch[1]);
+                return urlMatch[1];
+            }
+
+            const artistLinks = document.querySelectorAll('a[href*="spotify:artist:"], a[href*="/artist/"]');
+            for (const link of artistLinks) {
+                const href = link.getAttribute('href');
+
+                let match = href.match(/spotify:artist:([a-zA-Z0-9]+)/);
+                if (match) {
+                    console.log('[TrueTunes] ✅ Artist ID from link (URI format):', match[1]);
+                    return match[1];
+                }
+
+                match = href.match(/\/artist\/([a-zA-Z0-9]+)/);
+                if (match) {
+                    console.log('[TrueTunes] ✅ Artist ID from link (path format):', match[1]);
+                    return match[1];
+                }
+            }
+
+            console.warn('[TrueTunes] ⚠️ Could not determine artist ID');
+            return null;
+        } catch (e) {
+            console.error('[TrueTunes] Error getting artist ID:', e);
+            return null;
+        }
+    }
+
+    // NEW FUNCTION: Get artist name from the current artist page
+    // ============================================
+    function getCurrentArtistPageName() {
+        try {
+            console.log('[TrueTunes] 🔍 Looking for artist name...');
+
+            const mainContent = document.querySelector('main, [role="main"]');
+            if (mainContent) {
+                const headings = mainContent.querySelectorAll('h1, [class*="entityHeader"] h1, [class*="EntityHeader"] h1');
+                for (const heading of headings) {
+                    const text = heading.textContent.trim();
+                    if (text &&
+                        text.length > 2 &&
+                        text.length < 100 &&
+                        !['Popular', 'Discography', 'About', 'Featuring', 'Your Library', 'Playlists'].includes(text)) {
+                        console.log('[TrueTunes] ✅ Found artist name from main heading:', text);
+                        return text;
+                    }
+                }
+            }
+
+            const entityHeader = document.querySelector('.main-entityHeader-container, [class*="EntityHeader"]');
+            if (entityHeader) {
+                const heading = entityHeader.querySelector('h1, [class*="title"]');
+                if (heading) {
+                    const text = heading.textContent.trim();
+                    if (text && text.length > 2 && text.length < 100) {
+                        console.log('[TrueTunes] ✅ Found artist name from entity header:', text);
+                        return text;
+                    }
+                }
+            }
+
+            const title = document.title;
+            if (title) {
+                const cleanTitle = title.replace(/\s*-\s*Spotify\s*$/, '').trim();
+                if (cleanTitle &&
+                    cleanTitle !== 'Spotify' &&
+                    cleanTitle !== 'Your Library' &&
+                    !cleanTitle.includes('Playlists')) {
+                    console.log('[TrueTunes] ✅ Found artist name from title:', cleanTitle);
+                    return cleanTitle;
+                }
+            }
+
+            console.warn('[TrueTunes] ⚠️ Could not determine artist name');
+            return "Unknown Artist";
+        } catch (e) {
+            console.error('[TrueTunes] Error getting artist name:', e);
+            return "Unknown Artist";
+        }
+    }
+
+    // NEW FUNCTION: Check if we're on an artist page
+    // ============================================
+    function isOnArtistPage() {
+        if (window.location.pathname.includes('/artist/') ||
+            window.location.href.includes('spotify:artist:')) {
+            return true;
+        }
+
+        const hasArtistHeader = document.querySelector('[data-testid="artist-page"]') ||
+            document.querySelector('section[aria-label*="Artist"]') ||
+            document.querySelector('.main-entityHeader-container');
+
+        const hasPopularSection = document.querySelector('h2')?.textContent === 'Popular' ||
+            Array.from(document.querySelectorAll('h2, h3')).some(h =>
+                h.textContent.trim() === 'Popular'
+            );
+
+        return hasArtistHeader && hasPopularSection;
+    }
+
+
+
     // ===== UI STYLING =====
 
     function injectStyles() {
@@ -1889,24 +2032,58 @@
 
     function addVoteButtonToRow(row) {
         try {
+            // Skip if row already has a button
             const existing = row.querySelector('.truetunes-vote-button');
 
             const artistId = getArtistIdFromRow(row);
-            if (!artistId) return;
+            if (!artistId) {
+                console.log('[TrueTunes] ⚠️ No artist ID found for row');
+                return;
+            }
 
             const artistName = getArtistNameFromRow(row);
             const alreadyVoted = hasVoted(artistId);
 
+            // Remove old button if vote status changed
             if (existing) {
                 const wasVoted = existing.classList.contains('voted-state');
-                if (wasVoted === alreadyVoted) return;
+                if (wasVoted === alreadyVoted) return; // No change needed
                 existing.remove();
             }
 
-            const buttonContainer = row.querySelector('[data-testid="tracklist-row"] > div:last-child') ||
-                row.querySelector('.main-trackList-rowSectionEnd');
+            // Try multiple insertion strategies
+            const insertionStrategies = [
+                // Strategy 1: Right side actions column
+                () => row.querySelector('[data-testid="tracklist-row"] > div:last-child'),
 
-            if (!buttonContainer) return;
+                // Strategy 2: Track list row end
+                () => row.querySelector('.main-trackList-rowSectionEnd'),
+
+                // Strategy 3: Any last div in the row
+                () => row.querySelector('div:last-child'),
+
+                // Strategy 4: Create our own container
+                () => {
+                    const container = document.createElement('div');
+                    container.style.cssText = 'display: flex; align-items: center; margin-left: auto;';
+                    row.appendChild(container);
+                    return container;
+                }
+            ];
+
+            let buttonContainer = null;
+            for (const strategy of insertionStrategies) {
+                buttonContainer = strategy();
+                if (buttonContainer) {
+                    console.log('[TrueTunes] ✓ Found insertion point');
+                    break;
+                }
+            }
+
+            if (!buttonContainer) {
+                console.log('[TrueTunes] ❌ Could not find insertion point for vote button');
+                return;
+            }
 
             const voteButton = document.createElement('div');
             voteButton.className = 'truetunes-vote-button';
@@ -1915,17 +2092,17 @@
                 const voteData = votedArtists.get(artistId);
                 voteButton.classList.add('voted-state');
                 voteButton.innerHTML = `
-                    <button class="truetunes-vote-btn voted" title="You voted in issue #${voteData.issueNumber}" disabled>
-                        ✓ Voted
-                    </button>
-                `;
+                <button class="truetunes-vote-btn voted" title="You voted in issue #${voteData.issueNumber}" disabled>
+                    ✓ Voted
+                </button>
+            `;
             } else {
                 voteButton.classList.add('not-voted');
                 voteButton.innerHTML = `
-                    <button class="truetunes-vote-btn" title="Report as AI Generated">
-                        🚨 AI
-                    </button>
-                `;
+                <button class="truetunes-vote-btn" title="Report as AI Generated">
+                    🚨 AI
+                </button>
+            `;
 
                 voteButton.querySelector('.truetunes-vote-btn').onclick = (e) => {
                     e.stopPropagation();
@@ -1935,8 +2112,229 @@
             }
 
             buttonContainer.insertBefore(voteButton, buttonContainer.firstChild);
+            console.log(`[TrueTunes] ✓ Added vote button for: ${artistName}`);
+
         } catch (e) {
+            console.error('[TrueTunes] Error in addVoteButtonToRow:', e);
         }
+    }
+
+    function addArtistPageVoteButton() {
+        try {
+            console.log('[TrueTunes] 🎨 Adding artist page vote button...');
+
+            if (!isOnArtistPage()) {
+                console.log('[TrueTunes] Not on an artist page');
+                return;
+            }
+
+            const artistId = getCurrentArtistPageId();
+            const artistName = getCurrentArtistPageName();
+
+            if (!artistId) {
+                console.log('[TrueTunes] ❌ Could not get artist ID');
+                return;
+            }
+
+            console.log(`[TrueTunes] 🎤 Artist: ${artistName} (${artistId})`);
+
+            const alreadyVoted = hasVoted(artistId);
+            const isFlagged = flaggedArtists.has(artistId);
+
+            const existingButton = document.querySelector('.truetunes-artist-page-button');
+            if (existingButton) {
+                existingButton.remove();
+            }
+
+            const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow');
+
+            if (!actionBarRow) {
+                console.log('[TrueTunes] ❌ Could not find .main-actionBar-ActionBarRow');
+                return;
+            }
+
+            console.log('[TrueTunes] ✅ Found action bar row');
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'truetunes-artist-page-button';
+            buttonContainer.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        `;
+
+            if (isFlagged) {
+                const flagged = flaggedArtists.get(artistId);
+                const badge = document.createElement('div');
+                badge.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+                border-radius: 500px;
+                background: rgba(239, 68, 68, 0.2);
+                border: 1px solid rgba(239, 68, 68, 0.4);
+                color: #ef4444;
+                font-size: 14px;
+                font-weight: 700;
+                white-space: nowrap;
+            `;
+                badge.innerHTML = `⚠️ AI (${flagged.votes})`;
+                badge.title = `Flagged as AI-generated with ${flagged.votes} community votes`;
+                buttonContainer.appendChild(badge);
+            }
+
+            const voteButton = document.createElement('button');
+            voteButton.className = 'truetunes-artist-vote-btn';
+            voteButton.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 32px;
+            border-radius: 500px;
+            border: 1px solid ${alreadyVoted ? 'rgba(255, 255, 255, 0.3)' : 'rgba(239, 68, 68, 0.6)'};
+            background-color: ${alreadyVoted ? 'transparent' : 'rgba(239, 68, 68, 0.2)'};
+            color: ${alreadyVoted ? 'rgba(255, 255, 255, 0.7)' : '#ef4444'};
+            font-size: 14px;
+            font-weight: 700;
+            cursor: ${alreadyVoted ? 'not-allowed' : 'pointer'};
+            transition: all 0.2s;
+            white-space: nowrap;
+            min-height: 32px;
+            font-family: inherit;
+        `;
+
+            if (alreadyVoted) {
+                const voteData = votedArtists.get(artistId);
+                voteButton.innerHTML = `✓ Voted`;
+                voteButton.title = `You voted for ${artistName} in issue #${voteData.issueNumber}`;
+                voteButton.disabled = true;
+            } else {
+                voteButton.innerHTML = `🚨 Report AI`;
+                voteButton.title = `Report ${artistName} as AI-generated`;
+
+                voteButton.addEventListener('mouseenter', () => {
+                    if (!alreadyVoted) {
+                        voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
+                        voteButton.style.borderColor = '#ef4444';
+                        voteButton.style.transform = 'scale(1.04)';
+                    }
+                });
+
+                voteButton.addEventListener('mouseleave', () => {
+                    if (!alreadyVoted) {
+                        voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                        voteButton.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+                        voteButton.style.transform = 'scale(1)';
+                    }
+                });
+
+                voteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    console.log(`[TrueTunes] Voting for: ${artistName} (${artistId})`);
+                    voteOnArtist(artistId, artistName);
+                });
+            }
+
+            buttonContainer.appendChild(voteButton);
+            actionBarRow.appendChild(buttonContainer);
+
+            console.log(`[TrueTunes] ✅ Button added to action bar for ${artistName}`);
+
+        } catch (e) {
+            console.error('[TrueTunes] Error adding artist page button:', e);
+        }
+    }
+
+    function addVoteButtonsToArtistPage() {
+        // On artist pages, add a single button for the artist
+        addArtistPageVoteButton();
+    }
+
+    function watchForArtistPages() {
+        console.log('[TrueTunes] 👀 Setting up artist page watcher...');
+
+        let lastCheckedUrl = '';
+        let artistPageCheckTimer = null;
+
+        function checkForArtistPage() {
+            const currentUrl = window.location.href;
+
+            if (currentUrl !== lastCheckedUrl) {
+                lastCheckedUrl = currentUrl;
+
+                if (isOnArtistPage()) {
+                    console.log('[TrueTunes] 🎨 Artist page detected, adding button...');
+
+                    if (artistPageCheckTimer) {
+                        clearTimeout(artistPageCheckTimer);
+                    }
+
+                    setTimeout(() => addArtistPageVoteButton(), 500);
+                    setTimeout(() => addArtistPageVoteButton(), 1000);
+                    setTimeout(() => addArtistPageVoteButton(), 2000);
+                }
+            }
+        }
+
+        const observer = new MutationObserver(() => {
+            checkForArtistPage();
+        });
+
+        observer.observe(document.querySelector('title') || document.body, {
+            subtree: true,
+            characterData: true,
+            childList: true
+        });
+
+        setTimeout(() => checkForArtistPage(), 1000);
+        setInterval(() => checkForArtistPage(), 5000);
+
+        console.log('[TrueTunes] ✅ Artist page watcher active');
+    }
+
+
+
+    function observeArtistPageTracks() {
+        console.log('[TrueTunes] 👀 Setting up artist page observer...');
+
+        const observer = new MutationObserver((mutations) => {
+            // Check if we're on an artist page
+            if (!window.location.href.includes('/artist/')) return;
+
+            let shouldProcess = false;
+
+            for (const mutation of mutations) {
+                // Check if any added nodes contain tracks
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.matches && (
+                            node.matches('[data-testid="tracklist-row"]') ||
+                            node.matches('.main-trackList-trackListRow') ||
+                            node.querySelector('[data-testid="tracklist-row"]')
+                        )) {
+                            shouldProcess = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldProcess) break;
+            }
+
+            if (shouldProcess) {
+                console.log('[TrueTunes] 🎵 New tracks detected on artist page');
+                setTimeout(() => addVoteButtonsToArtistPage(), 300);
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        console.log('[TrueTunes] ✓ Artist page observer active');
     }
 
     function addAIBadgeToRow(row, artist) {
@@ -1962,9 +2360,10 @@
         isProcessing = true;
 
         try {
-            const rows = document.querySelectorAll('[data-testid="tracklist-row"], .main-trackList-trackListRow');
+            // Playlist rows
+            const playlistRows = document.querySelectorAll('[data-testid="tracklist-row"], .main-trackList-trackListRow');
 
-            rows.forEach(row => {
+            playlistRows.forEach(row => {
                 try {
                     const artistId = getArtistIdFromRow(row);
                     if (!artistId) return;
@@ -1979,8 +2378,12 @@
                         row.classList.remove('truetunes-flagged-row');
                     }
                 } catch (e) {
+                    // Silent fail for individual rows
                 }
             });
+
+            // Artist page tracks
+            addVoteButtonsToArtistPage();
         } catch (e) {
             console.error('[TrueTunes] Error highlighting items:', e);
         } finally {
@@ -1992,7 +2395,10 @@
         let timeout;
         const debouncedHighlight = () => {
             clearTimeout(timeout);
-            timeout = setTimeout(() => highlightPlaylistItems(), 300);
+            timeout = setTimeout(() => {
+                highlightPlaylistItems();
+                addVoteButtonsToArtistPage(); // Also check artist pages
+            }, 300);
         };
 
         const observer = new MutationObserver(debouncedHighlight);
@@ -2002,8 +2408,15 @@
             subtree: true
         });
 
-        setTimeout(() => highlightPlaylistItems(), 2000);
-        setInterval(() => highlightPlaylistItems(), 5000);
+        setTimeout(() => {
+            highlightPlaylistItems();
+            addVoteButtonsToArtistPage();
+        }, 2000);
+
+        setInterval(() => {
+            highlightPlaylistItems();
+            addVoteButtonsToArtistPage();
+        }, 5000);
     }
 
     // ===== INITIALIZATION =====
@@ -2035,6 +2448,32 @@
             });
 
             watchPlaylistChanges();
+            watchForArtistPages();
+
+            setTimeout(() => {
+                if (isOnArtistPage()) {
+                    console.log('[TrueTunes] 🎨 Started on artist page');
+                    addArtistPageVoteButton();
+                }
+            }, 2000);
+
+            let lastUrl = location.href;
+            new MutationObserver(() => {
+                const currentUrl = location.href;
+                if (currentUrl !== lastUrl) {
+                    lastUrl = currentUrl;
+
+                    // Check if we're on an artist page
+                    if (currentUrl.includes('/artist/')) {
+                        console.log('[TrueTunes] Artist page detected, adding vote buttons...');
+                        setTimeout(() => {
+                            addVoteButtonsToArtistPage();
+                            highlightPlaylistItems();
+                        }, 1000);
+                    }
+                }
+            }).observe(document, { subtree: true, childList: true });
+
             setInterval(() => loadFlaggedList(), 6 * 60 * 60 * 1000);
 
             if (settings.githubLinked) {
@@ -2078,14 +2517,8 @@
                             return;
                         }
 
-                        let artistName = "Unknown Artist";
-                        try {
-                            const item = Spicetify.Player.data?.item;
-                            if (item?.artists?.[0]) {
-                                artistName = item.artists[0].name;
-                            }
-                        } catch (e) { }
-
+                        // Fetch the correct artist name from the URI
+                        const artistName = await getArtistNameFromUri(uri);
                         voteOnArtist(artistId, artistName);
                     },
                     ([uri]) => {
