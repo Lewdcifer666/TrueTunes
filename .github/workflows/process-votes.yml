@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch full history for proper pulls
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -27,5 +29,6 @@ jobs:
         run: |
           git config user.name "TrueTunes Bot"
           git config user.email "bot@truetunes.github.io"
+          git pull --rebase origin main || true
           git add data/*.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: $(date)" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: $(date)" && git push || echo "Push failed, but vote processing succeeded")
