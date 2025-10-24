@@ -5,8 +5,8 @@
     const GITHUB_RAW = "https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/flagged.json";
     const GITHUB_API = "https://api.github.com/repos/Lewdcifer666/TrueTunes/issues";
     const ISSUE_URL = "https://github.com/Lewdcifer666/TrueTunes/issues/new";
-    const ADMIN_USERS = ['Lewdcifer666'];  // Add your GitHub username here
-    const ADMIN_BYPASS_DUPLICATE_CHECK = true;  // Allow voting multiple times
+    const ADMIN_USERS = ['Lewdcifer666'];
+    const ADMIN_BYPASS_DUPLICATE_CHECK = true;
 
     // GitHub Device Flow OAuth
     const GITHUB_CLIENT_ID = "Ov23liuuPQQQ8ydHDkOm";
@@ -46,7 +46,7 @@
     };
 
     let historyView = {
-        mode: 'side-by-side', // 'open-only', 'closed-only', 'side-by-side', 'combined'
+        mode: 'side-by-side',
         displayedCount: 20,
         loadMoreStep: 20
     };
@@ -54,6 +54,7 @@
     // ===== DEBOUNCING & STATE MANAGEMENT =====
     let artistPageButtonDebounce = null;
     let lastProcessedArtistId = null;
+    let adminLogThrottle = { lastLog: 0, interval: 60000 }; // Log once per minute
 
     // ===== ADMIN CHECK FUNCTION =====
     function isAdmin() {
@@ -65,8 +66,6 @@
     async function startGithubDeviceFlow() {
         try {
             Spicetify.showNotification('🔄 Initializing GitHub authentication...', false, 2000);
-
-            console.log('[TrueTunes] Requesting device code...');
 
             const deviceCodeResponse = await fetch(DEVICE_CODE_URL, {
                 method: 'POST',
@@ -90,8 +89,6 @@
                 throw new Error('Invalid response from device code endpoint');
             }
 
-            console.log('[TrueTunes] Device code received:', deviceData.user_code);
-
             showDeviceCodeModal(deviceData);
 
             try {
@@ -101,10 +98,7 @@
                     deviceData.expires_in || 900
                 );
 
-                console.log('[TrueTunes] ✓ Authentication complete!');
-
             } catch (pollError) {
-                console.error('[TrueTunes] Polling error:', pollError);
                 document.getElementById('truetunes-device-modal')?.remove();
 
                 if (pollError.message !== 'User cancelled') {
@@ -113,7 +107,6 @@
             }
 
         } catch (error) {
-            console.error('[TrueTunes] Device flow error:', error);
             document.getElementById('truetunes-device-modal')?.remove();
 
             let errorMessage = 'Authentication failed';
@@ -261,7 +254,6 @@
         return new Promise((resolve, reject) => {
             const poll = async () => {
                 if (isPolling) {
-                    console.log('[TrueTunes] Skipping poll - previous poll still in progress');
                     return;
                 }
 
@@ -276,8 +268,6 @@
                 }
 
                 try {
-                    console.log('[TrueTunes] Polling for authorization...');
-
                     const response = await fetch(TOKEN_URL, {
                         method: 'POST',
                         headers: {
@@ -292,11 +282,9 @@
                     });
 
                     const data = await response.json();
-                    console.log('[TrueTunes] Poll response:', data);
 
                     if (data.error) {
                         if (data.error === 'authorization_pending') {
-                            console.log('[TrueTunes] Still waiting for user authorization...');
                             isPolling = false;
                             pollTimer = setTimeout(poll, currentInterval);
                             return;
@@ -304,10 +292,8 @@
                         else if (data.error === 'slow_down') {
                             if (data.interval) {
                                 currentInterval = data.interval * 1000;
-                                console.log(`[TrueTunes] Slowing down - new interval: ${data.interval}s`);
                             } else {
                                 currentInterval += 5000;
-                                console.log(`[TrueTunes] Slowing down - new interval: ${currentInterval / 1000}s`);
                             }
                             isPolling = false;
                             pollTimer = setTimeout(poll, currentInterval);
@@ -328,7 +314,6 @@
                             return;
                         }
                         else {
-                            console.error('[TrueTunes] Unexpected error:', data.error);
                             isPolling = false;
                             pollTimer = setTimeout(poll, currentInterval);
                             return;
@@ -336,8 +321,6 @@
                     }
 
                     if (data.access_token) {
-                        console.log('[TrueTunes] ✓ Access token received!');
-
                         if (pollTimer) {
                             clearTimeout(pollTimer);
                             pollTimer = null;
@@ -352,18 +335,15 @@
                             await completeGithubAuth(data.access_token, userData);
                             resolve();
                         } catch (err) {
-                            console.error('[TrueTunes] Error getting user data:', err);
                             reject(err);
                         }
                         return;
                     }
 
-                    console.log('[TrueTunes] Unexpected response, continuing to poll...');
                     isPolling = false;
                     pollTimer = setTimeout(poll, currentInterval);
 
                 } catch (error) {
-                    console.error('[TrueTunes] Poll error:', error);
                     isPolling = false;
                     pollTimer = setTimeout(poll, currentInterval);
                 }
@@ -395,9 +375,9 @@
         settings.githubLinked = true;
         saveSettings();
 
-        // Check if user is admin
+        // Check if user is admin - LOG ONLY ONCE
         if (isAdmin()) {
-            console.log('[TrueTunes] 🔓 ADMIN MODE ENABLED - Unlimited voting!');
+            console.log('[TrueTunes] Admin mode enabled for', userData.login);
             Spicetify.showNotification(`✓ Logged in as ${userData.login} [ADMIN]`, false, 3000);
         } else {
             Spicetify.showNotification(`✓ Logged in as ${userData.login}`, false, 3000);
@@ -497,10 +477,16 @@
                 const artistIdMatch = body.match(/Artist ID:\s*([^\s\n]+)/);
                 const platformMatch = body.match(/Platform:\s*(\w+)/i);
 
+                // NORMALIZE: Remove spotify: prefix if present
+                let artistId = artistIdMatch ? artistIdMatch[1] : null;
+                if (artistId) {
+                    artistId = artistId.replace(/^spotify:/, '');
+                }
+
                 return {
                     issueNumber: issue.number,
                     artistName: artistNameMatch ? artistNameMatch[1] : 'Unknown Artist',
-                    artistId: artistIdMatch ? artistIdMatch[1] : null,
+                    artistId: artistId,
                     platform: platformMatch ? platformMatch[1] : 'Unknown',
                     reporter: issue.user.login,
                     reporterAvatar: issue.user.avatar_url,
@@ -565,7 +551,9 @@
                 const artistIdMatch = body.match(/Artist ID:\s*([^\s\n]+)/);
 
                 if (artistIdMatch) {
-                    const artistId = artistIdMatch[1];
+                    const rawArtistId = artistIdMatch[1];
+                    // Normalize to just the ID (remove spotify: prefix if present)
+                    const artistId = rawArtistId.replace(/^spotify:/, '');
                     const artistName = artistNameMatch ? artistNameMatch[1] : 'Unknown';
 
                     votedArtists.set(artistId, {
@@ -593,8 +581,10 @@
             highlightPlaylistItems();
 
             console.log(`[TrueTunes] Verified ${userStats.totalVotes} votes`);
+
+            // REMOVED: Excessive admin logging
             if (isAdmin()) {
-                console.log('[TrueTunes] 🔓 ADMIN: You can vote unlimited times!');
+                // Only log once per verification, not constantly
             }
         } catch (e) {
             console.error('[TrueTunes] Error verifying votes:', e);
@@ -622,13 +612,19 @@
         }
     }
 
+    // FIXED: Removed console.log from hasVoted to stop spam
     function hasVoted(artistId) {
         // ADMIN BYPASS: Allow voting even if already voted
         if (isAdmin() && ADMIN_BYPASS_DUPLICATE_CHECK) {
-            console.log('[TrueTunes] 🔓 ADMIN: Bypassing duplicate vote check');
+            // REMOVED: console.log spam
             return false; // Pretend they haven't voted
         }
         return votedArtists.has(artistId);
+    }
+
+    // ===== UTILITY: Calculate user's contribution to an artist's vote count =====
+    function getUserVoteCountForArtist(artistId) {
+        return userStats.votedArtists.filter(v => v.artistId === artistId && v.state === 'open').length;
     }
 
     // ===== TRUETUNES PANEL UI =====
@@ -661,7 +657,7 @@
         const totalFlagged = flaggedArtists.size;
         const MIN_VOTES = 10;
 
-        // FIXED: Group votes by artist ID and aggregate progress
+        // FIXED: Group votes by artist ID and calculate proper progress
         const votesByArtist = new Map();
         for (const vote of userStats.votedArtists) {
             if (!votesByArtist.has(vote.artistId)) {
@@ -669,23 +665,35 @@
                     artistId: vote.artistId,
                     artistName: vote.artistName,
                     issues: [],
+                    openIssues: [],
                     state: vote.state,
                     createdAt: vote.createdAt
                 });
             }
-            votesByArtist.get(vote.artistId).issues.push(vote.issueNumber);
+            const artistData = votesByArtist.get(vote.artistId);
+            artistData.issues.push(vote.issueNumber);
+            if (vote.state === 'open') {
+                artistData.openIssues.push(vote.issueNumber);
+            }
         }
 
         // Get last 3 unique artists with aggregated progress
+        // FIXED: Use user's open issue count + pending votes for accurate progress
         const recentVotes = Array.from(votesByArtist.values())
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
             .slice(0, 3)
             .map(vote => {
                 const pending = window.trueTunesPending?.get(vote.artistId);
+                const userOpenVotes = vote.openIssues.length;
+
+                // Calculate total community votes (pending votes + user's contribution if not yet in pending)
+                let totalVotes = pending ? pending.votes : userOpenVotes;
+
                 return {
                     ...vote,
                     totalIssues: vote.issues.length,
-                    progress: pending ? { current: pending.votes, needed: MIN_VOTES } : null
+                    userContribution: userOpenVotes,
+                    progress: { current: totalVotes, needed: MIN_VOTES }
                 };
             });
 
@@ -724,7 +732,7 @@
                 </div>
             </div>
 
-            <!-- Recent Activity -->
+            <!-- Recent Activity - FIXED: No progress bar here, moved to Community tab -->
             <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">🔥 Recent Activity</h3>
             
             <div style="margin-bottom: 16px;">
@@ -734,7 +742,7 @@
                        style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s;"
                        onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
                        onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
                                 <div style="font-size: 11px; color: #999;">
@@ -743,22 +751,10 @@
                                     <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 12px;">
-                                <span style="background: ${vote.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${vote.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
-                                    ${vote.state}
-                                </span>
-                                ${vote.progress ? `
-                                    <span style="background: rgba(126, 34, 206, 0.2); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
-                                        ${vote.progress.current}/${vote.progress.needed} votes
-                                    </span>
-                                ` : ''}
-                            </div>
+                            <span style="background: ${vote.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${vote.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; margin-left: 12px;">
+                                ${vote.state}
+                            </span>
                         </div>
-                        ${vote.progress ? `
-                            <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden; margin-top: 8px;">
-                                <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${(vote.progress.current / vote.progress.needed) * 100}%; transition: width 0.3s ease;"></div>
-                            </div>
-                        ` : ''}
                     </a>
                 `).join('') : '<div style="text-align: center; color: #999; padding: 40px;">No votes yet</div>'}
             </div>
@@ -773,6 +769,7 @@
     `;
     }
 
+    // FIXED: Community tab now shows progress bars
     function createCommunityTab() {
         if (!settings.githubLinked) {
             return `
@@ -800,6 +797,8 @@
         const lastUpdatedText = communityFeed.lastUpdated
             ? `Updated ${formatTimeAgo(communityFeed.lastUpdated)}`
             : 'Never updated';
+
+        const MIN_VOTES = 10;
 
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
@@ -830,9 +829,16 @@
                 </div>
             </div>
 
-            <!-- Activity Feed -->
+            <!-- Activity Feed with Progress -->
             <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
-                ${communityFeed.recentActivity.length > 0 ? communityFeed.recentActivity.map(activity => `
+                ${communityFeed.recentActivity.length > 0 ? communityFeed.recentActivity.map(activity => {
+            // NEW: Get vote progress for this artist
+            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+            const pending = window.trueTunesPending?.get(normalizedId);
+            const progress = pending ? pending.votes : 0;
+            const progressPercent = (progress / MIN_VOTES) * 100;
+
+            return `
                     <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${activity.issueNumber}" 
                        target="_blank"
                        style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid ${activity.state === 'open' ? '#22c55e' : '#666'};"
@@ -857,7 +863,7 @@
                             <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 ${activity.artistName}
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #999;">
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #999; margin-bottom: 8px;">
                                 <span>🎵 ${activity.platform}</span>
                                 <span>•</span>
                                 <span style="color: #7e22ce; font-weight: 600;">Issue #${activity.issueNumber}</span>
@@ -865,10 +871,22 @@
                                     <span>•</span>
                                     <span>💬 ${activity.comments}</span>
                                 ` : ''}
+                                ${pending ? `
+                                    <span>•</span>
+                                    <span style="color: #7e22ce; font-weight: 600;">${progress}/${MIN_VOTES} votes</span>
+                                ` : ''}
                             </div>
+                            
+                            <!-- NEW: Progress Bar -->
+                            ${pending && activity.state === 'open' ? `
+                                <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                                    <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                                </div>
+                            ` : ''}
                         </div>
                     </a>
-                `).join('') : `
+                `;
+        }).join('') : `
                     <div style="text-align: center; color: #999; padding: 60px 20px;">
                         <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
                         <p>No community activity yet</p>
@@ -887,6 +905,8 @@
     `;
     }
 
+
+
     function createStatsTab() {
         if (!settings.githubLinked) {
             return `
@@ -898,15 +918,8 @@
         }
 
         const totalFlagged = flaggedArtists.size;
-        const MIN_VOTES = 10;
 
-        const recentVotes = userStats.votedArtists.slice(0, 5).map(vote => {
-            const pending = window.trueTunesPending?.get(vote.artistId);
-            return {
-                ...vote,
-                progress: pending ? { current: pending.votes, needed: MIN_VOTES } : null
-            };
-        });
+        const recentVotes = userStats.votedArtists.slice(0, 5);
 
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
@@ -936,7 +949,7 @@
                        style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s;"
                        onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
                        onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
                                 <div style="font-size: 11px; color: #999;">
@@ -945,22 +958,10 @@
                                     <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 12px;">
-                                <span style="background: ${vote.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${vote.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
-                                    ${vote.state}
-                                </span>
-                                ${vote.progress ? `
-                                    <span style="background: rgba(126, 34, 206, 0.2); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap;">
-                                        ${vote.progress.current}/${vote.progress.needed} votes
-                                    </span>
-                                ` : ''}
-                            </div>
+                            <span style="background: ${vote.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${vote.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; margin-left: 12px;">
+                                ${vote.state}
+                            </span>
                         </div>
-                        ${vote.progress ? `
-                            <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden; margin-top: 8px;">
-                                <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${(vote.progress.current / vote.progress.needed) * 100}%; transition: width 0.3s ease;"></div>
-                            </div>
-                        ` : ''}
                     </a>
                 `).join('') : '<div style="text-align: center; color: #999; padding: 40px;">No votes yet</div>'}
             </div>
@@ -984,7 +985,6 @@
         const closedIssues = userStats.votedArtists.filter(v => v.state === 'closed')
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // View mode labels
         const viewLabels = {
             'open-only': '🟢 Open Only',
             'closed-only': '⚫ Closed Only',
@@ -992,7 +992,6 @@
             'combined': '📋 Combined'
         };
 
-        // Render based on view mode
         let contentHTML = '';
 
         if (historyView.mode === 'open-only') {
@@ -1076,7 +1075,6 @@
 
         return `
         <div style="display: flex; flex-direction: column; height: 100%; overflow: hidden;">
-            <!-- Header (doesn't fade) -->
             <div style="padding: 24px 24px 0 24px; flex-shrink: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -1089,7 +1087,6 @@
                 </div>
             </div>
             
-            <!-- Content area (fades on toggle) -->
             <div id="history-content-area" style="flex: 1; display: flex; flex-direction: column; overflow-y: hidden; overflow-x: hidden; min-height: 0; padding: 0 24px 24px 24px;">
                 ${contentHTML}
             </div>
@@ -1204,7 +1201,6 @@
             settings: createSettingsTab()
         };
 
-        // For history tab, only fade the content area, not the header
         if (currentTab === 'history') {
             const historyContent = document.getElementById('history-content-area');
             if (historyContent) {
@@ -1214,7 +1210,6 @@
                     panel.innerHTML = tabs[currentTab];
                     const newContent = document.getElementById('history-content-area');
                     if (newContent) {
-                        // Force reflow before setting opacity
                         newContent.offsetHeight;
                         newContent.style.opacity = '1';
                     }
@@ -1224,7 +1219,6 @@
             }
         }
 
-        // Standard fade for other tabs
         panel.style.opacity = '0';
         panel.style.transition = 'opacity 0.15s ease';
 
@@ -1315,19 +1309,16 @@
                 renderTrueTunesPanel();
             });
         } else if (currentTab === 'history') {
-            // Single toggle button that cycles through views
             const toggleBtn = document.getElementById('toggle-history-view');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
-                    // Cycle through views
                     const modes = ['open-only', 'closed-only', 'side-by-side', 'combined'];
                     const currentIndex = modes.indexOf(historyView.mode);
                     const nextIndex = (currentIndex + 1) % modes.length;
                     historyView.mode = modes[nextIndex];
-                    historyView.displayedCount = 20; // Reset count when changing view
-                    saveSettings(); // Persist the view mode
+                    historyView.displayedCount = 20;
+                    saveSettings();
 
-                    // Fade only the content area
                     const contentArea = document.getElementById('history-content-area');
                     if (contentArea) {
                         contentArea.style.opacity = '0';
@@ -1339,7 +1330,6 @@
                     }
                 });
 
-                // Hover effect
                 toggleBtn.addEventListener('mouseenter', () => {
                     toggleBtn.style.background = 'rgba(126, 34, 206, 0.3)';
                     toggleBtn.style.transform = 'scale(1.05)';
@@ -1351,7 +1341,6 @@
                 });
             }
 
-            // Load more button
             document.getElementById('load-more-history')?.addEventListener('click', () => {
                 historyView.displayedCount += historyView.loadMoreStep;
                 renderTrueTunesPanel();
@@ -1520,7 +1509,6 @@
         renderTrueTunesPanel();
     }
 
-    // FIXED: Improved button placement and error handling
     function createTrueTunesButton() {
         const topBarRight = document.querySelector('.main-topBar-topbarContentRight');
         if (!topBarRight) {
@@ -1581,10 +1569,7 @@
 
         button.addEventListener('click', showTrueTunesPanel);
 
-        // Insert before the first child in topbarContentRight
         topBarRight.insertBefore(button, topBarRight.firstChild);
-
-        console.log('[TrueTunes] Button created in topbar');
     }
 
     // ===== CORE FUNCTIONALITY =====
@@ -1600,8 +1585,6 @@
                     flaggedArtists.set(artist.platforms.spotify, artist);
                 }
             });
-
-            console.log('[TrueTunes] Loaded', flaggedArtists.size, 'flagged artists');
 
             if (settings.highlightInPlaylists) {
                 setTimeout(() => highlightPlaylistItems(), 1000);
@@ -1619,7 +1602,9 @@
             window.trueTunesPending = new Map();
             data.artists.forEach(artist => {
                 if (artist.platforms && artist.platforms.spotify) {
-                    window.trueTunesPending.set(artist.platforms.spotify, {
+                    // Normalize key: remove "spotify:" prefix
+                    const normalizedId = artist.platforms.spotify;
+                    window.trueTunesPending.set(normalizedId, {
                         name: artist.name,
                         votes: artist.votes || 0,
                         reporters: artist.reporters || []
@@ -1673,7 +1658,6 @@
                 try {
                     const uri = Spicetify.Player.data.track.uri;
                     Spicetify.Platform.PlayerAPI.skipToNext();
-                    console.log('[TrueTunes] Track hidden:', uri);
                 } catch (error) {
                     console.error('[TrueTunes] Failed to hide:', error);
                 }
@@ -1683,7 +1667,6 @@
                 try {
                     const uri = Spicetify.Player.data.track.uri;
                     Spicetify.Platform.LibraryAPI.remove({ uris: [uri] });
-                    console.log('[TrueTunes] Track removed from library:', uri);
                 } catch (error) {
                     console.error('[TrueTunes] Failed to remove:', error);
                 }
@@ -1730,13 +1713,11 @@
         try {
             const artistId = uri.split(':')[2];
 
-            // Try to get from cached flagged artists first
             const flagged = flaggedArtists.get(artistId);
             if (flagged?.name) {
                 return flagged.name;
             }
 
-            // Try to get from Spotify API
             const response = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${artistId}`);
             if (response?.name) {
                 return response.name;
@@ -1850,8 +1831,6 @@
         return hasArtistHeader && hasPopularSection;
     }
 
-
-
     // ===== UI STYLING =====
 
     function injectStyles() {
@@ -1877,29 +1856,6 @@
             #truetunes-panel-content {
                 transition: opacity 0.15s ease;
                 overflow-y: visible !important;
-            }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"] {
-                scrollbar-width: thin;
-                scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05);
-            }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"]::-webkit-scrollbar {
-               width: 6px;
-            }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
-               background: rgba(255, 255, 255, 0.05);
-               border-radius: 3px;
-            }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
-               background: rgba(126, 34, 206, 0.5);
-               border-radius: 3px;
-            }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
-               background: rgba(126, 34, 206, 0.7);
             }
 
             .truetunes-tab {
@@ -1987,46 +1943,6 @@
                 box-shadow: none;
                 background: rgba(100, 100, 100, 0.2);
             }
-
-            #truetunes-panel-content > div > div[style*="overflow-y: auto"] {
-                scrollbar-width: thin !important;
-                scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05) !important;
-            }
-            
-            #history-content-area > div > div[style*="overflow-y: auto"],
-            #history-content-area > div > div > div[style*="overflow-y: auto"] {
-                scrollbar-width: thin !important;
-                scrollbar-color: rgba(126, 34, 206, 0.5) rgba(255, 255, 255, 0.05) !important;
-            }
-
-            #truetunes-panel-content::-webkit-scrollbar,
-            #history-content-area::-webkit-scrollbar,
-            #history-content-area *::-webkit-scrollbar,
-            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar {
-                width: 8px !important;
-            }
-
-            #truetunes-panel-content::-webkit-scrollbar-track,
-            #history-content-area::-webkit-scrollbar-track,
-            #history-content-area *::-webkit-scrollbar-track,
-            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.05) !important;
-            }
-
-            #truetunes-panel-content::-webkit-scrollbar-thumb,
-            #history-content-area::-webkit-scrollbar-thumb,
-            #history-content-area *::-webkit-scrollbar-thumb,
-            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
-                background: rgba(126, 34, 206, 0.5) !important;
-                border-radius: 4px !important;
-            }
-
-            #truetunes-panel-content::-webkit-scrollbar-thumb:hover,
-            #history-content-area::-webkit-scrollbar-thumb:hover,
-            #history-content-area *::-webkit-scrollbar-thumb:hover,
-            #history-content-area div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
-                background: rgba(126, 34, 206, 0.7) !important;
-            }
         `;
             document.head.appendChild(style);
         } catch (e) {
@@ -2056,7 +1972,6 @@
 
     function addVoteButtonToRow(row) {
         try {
-            // Skip if row already has a button
             const existing = row.querySelector('.truetunes-vote-button');
 
             const artistId = getArtistIdFromRow(row);
@@ -2067,25 +1982,16 @@
             const artistName = getArtistNameFromRow(row);
             const alreadyVoted = hasVoted(artistId);
 
-            // Remove old button if vote status changed
             if (existing) {
                 const wasVoted = existing.classList.contains('voted-state');
-                if (wasVoted === alreadyVoted) return; // No change needed
+                if (wasVoted === alreadyVoted) return;
                 existing.remove();
             }
 
-            // Try multiple insertion strategies
             const insertionStrategies = [
-                // Strategy 1: Right side actions column
                 () => row.querySelector('[data-testid="tracklist-row"] > div:last-child'),
-
-                // Strategy 2: Track list row end
                 () => row.querySelector('.main-trackList-rowSectionEnd'),
-
-                // Strategy 3: Any last div in the row
                 () => row.querySelector('div:last-child'),
-
-                // Strategy 4: Create our own container
                 () => {
                     const container = document.createElement('div');
                     container.style.cssText = 'display: flex; align-items: center; margin-left: auto;';
@@ -2139,7 +2045,7 @@
         }
     }
 
-    // FIXED: Debounced artist page button addition with proper state tracking
+    // FIXED: Improved artist page button logic with better debouncing
     function addArtistPageVoteButton() {
         try {
             // Clear any existing debounce timer
@@ -2149,15 +2055,20 @@
 
             // Debounce the button addition
             artistPageButtonDebounce = setTimeout(() => {
-                if (!isOnArtistPage()) {
-                    return;
+                // IMPROVED: Better artist page detection
+                const onArtistPage = window.location.pathname.includes('/artist/') ||
+                    document.querySelector('[data-testid="artist-page"]') ||
+                    document.querySelector('.main-entityHeader-container[data-testid="entity-header"]');
+
+                if (!onArtistPage) {
+                    return; // Silent return, no spam
                 }
 
                 const artistId = getCurrentArtistPageId();
                 const artistName = getCurrentArtistPageName();
 
                 if (!artistId) {
-                    return;
+                    return; // Silent return
                 }
 
                 // Skip if we just processed this artist
@@ -2175,10 +2086,13 @@
                     existingButton.remove();
                 }
 
-                const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow');
+                // IMPROVED: Multiple selector strategies for action bar
+                const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow') ||
+                    document.querySelector('[data-testid="action-bar-row"]') ||
+                    document.querySelector('.main-entityHeader-actionBar');
 
                 if (!actionBarRow) {
-                    return;
+                    return; // Silent return
                 }
 
                 const buttonContainer = document.createElement('div');
@@ -2187,6 +2101,7 @@
                 display: inline-flex;
                 align-items: center;
                 gap: 8px;
+                margin-left: 8px;
             `;
 
                 if (isFlagged) {
@@ -2269,16 +2184,14 @@
             }, 500); // 500ms debounce
 
         } catch (e) {
-            console.error('[TrueTunes] Error adding artist page button:', e);
+            // Silent error handling - no console spam
         }
     }
 
     function addVoteButtonsToArtistPage() {
-        // On artist pages, add a single button for the artist
         addArtistPageVoteButton();
     }
 
-    // FIXED: Simplified and optimized page watcher
     function watchForArtistPages() {
         let lastUrl = window.location.href;
 
@@ -2286,41 +2199,22 @@
             const currentUrl = window.location.href;
             if (currentUrl !== lastUrl) {
                 lastUrl = currentUrl;
-                lastProcessedArtistId = null; // Reset processed artist on URL change
+                lastProcessedArtistId = null;
 
                 if (currentUrl.includes('/artist/')) {
-                    addArtistPageVoteButton();
+                    // Wait a bit longer for page to fully load
+                    setTimeout(() => addArtistPageVoteButton(), 1500);
                 }
             }
         }
 
-        // Check on URL changes
-        setInterval(checkUrl, 1000); // Check every second instead of watching mutations
+        setInterval(checkUrl, 1000);
 
-        // Initial check
         setTimeout(() => {
             if (isOnArtistPage()) {
                 addArtistPageVoteButton();
             }
-        }, 1500);
-    }
-
-    function observeArtistPageTracks() {
-        let observerTimeout;
-
-        const observer = new MutationObserver(() => {
-            // Debounce mutations
-            clearTimeout(observerTimeout);
-            observerTimeout = setTimeout(() => {
-                if (!window.location.href.includes('/artist/')) return;
-                addVoteButtonsToArtistPage();
-            }, 500);
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        }, 2000);
     }
 
     function addAIBadgeToRow(row, artist) {
@@ -2346,7 +2240,6 @@
         isProcessing = true;
 
         try {
-            // Playlist rows
             const playlistRows = document.querySelectorAll('[data-testid="tracklist-row"], .main-trackList-trackListRow');
 
             playlistRows.forEach(row => {
@@ -2368,7 +2261,6 @@
                 }
             });
 
-            // Artist page tracks
             addVoteButtonsToArtistPage();
         } catch (e) {
             console.error('[TrueTunes] Error highlighting items:', e);
@@ -2383,7 +2275,7 @@
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 highlightPlaylistItems();
-            }, 500); // Increased debounce time
+            }, 500);
         };
 
         const observer = new MutationObserver(debouncedHighlight);
@@ -2397,10 +2289,9 @@
             highlightPlaylistItems();
         }, 2000);
 
-        // Reduced interval frequency
         setInterval(() => {
             highlightPlaylistItems();
-        }, 10000); // Check every 10 seconds instead of 5
+        }, 10000);
     }
 
     // ===== INITIALIZATION =====
@@ -2410,8 +2301,6 @@
             setTimeout(init, 100);
             return;
         }
-
-        console.log('[TrueTunes] Initializing...');
 
         try {
             loadSettings();
@@ -2441,8 +2330,6 @@
             }
 
             createTrueTunesButton();
-
-            console.log('[TrueTunes] Ready!');
         } catch (e) {
             console.error('[TrueTunes] Initialization error:', e);
         }
@@ -2477,7 +2364,6 @@
                             return;
                         }
 
-                        // Fetch the correct artist name from the URI
                         const artistName = await getArtistNameFromUri(uri);
                         voteOnArtist(artistId, artistName);
                     },
@@ -2509,8 +2395,6 @@
                     () => true,
                     `<svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor"><path d="M16 2C8.3 2 2 8.3 2 16s6.3 14 14 14 14-6.3 14-14S23.7 2 16 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zM8 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm8 8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm0-8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm8 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>`
                 ).register();
-
-                console.log('[TrueTunes] Context menu registered!');
             } catch (error) {
                 console.error('[TrueTunes] Failed to register context menu:', error);
             }

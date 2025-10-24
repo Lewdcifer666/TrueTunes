@@ -26,6 +26,18 @@ const REQUIRE_EXTENSION_SIGNATURE = true;
 const MIN_ACCOUNT_AGE_DAYS = 7;
 const ADMIN_ALLOW_DUPLICATE_VOTES = true;
 
+/**
+ * Calculate total votes from a reporterVotes Map
+ * Handles both admin (multiple votes) and regular users (single vote)
+ */
+function calculateTotalVotes(reporterVotes) {
+    let total = 0;
+    for (const count of reporterVotes.values()) {
+        total += count;
+    }
+    return total;
+}
+
 console.log('='.repeat(60));
 console.log('TrueTunes Vote Processor - Diagnostic Mode');
 console.log('='.repeat(60));
@@ -341,11 +353,17 @@ async function main() {
                     platform: vote.platform,
                     id: vote.id,
                     reporters: new Set(),
+                    reporterVotes: new Map(), // ADD THIS LINE
                     issueNumbers: []
                 });
             }
 
             const data = artistVotes.get(key);
+
+            // Initialize reporterVotes Map if not exists
+            if (!data.reporterVotes) {
+                data.reporterVotes = new Map();
+            }
 
             const isAdmin = ADMIN_USERS.includes(vote.reporter);
             const allowDuplicate = isAdmin && ADMIN_ALLOW_DUPLICATE_VOTES;
@@ -361,6 +379,7 @@ async function main() {
                     // Admin: Count each vote separately
                     const voteCount = data.reporterVotes.get(vote.reporter) || 0;
                     data.reporterVotes.set(vote.reporter, voteCount + 1);
+                    data.reporters.add(vote.reporter); // Still track unique reporter
                     console.log(`✓ [ADMIN] Vote #${voteCount + 1} counted for ${vote.artist}`);
                 } else {
                     // Regular user: One vote per artist
@@ -371,7 +390,7 @@ async function main() {
 
                 data.issueNumbers.push(issue.number);
 
-                // Calculate total votes
+                // Calculate total votes (sum of all vote counts)
                 let totalVotes = 0;
                 for (const count of data.reporterVotes.values()) {
                     totalVotes += count;
@@ -395,9 +414,14 @@ async function main() {
                 const existingReporters = new Set(existing.reporters || []);
                 data.reporters.forEach(reporter => existingReporters.add(reporter));
                 existing.reporters = Array.from(existingReporters);
-                existing.votes = existing.reporters.length;
+
+                // Use helper function to calculate total votes
+                const totalVotes = calculateTotalVotes(data.reporterVotes || new Map());
+                existing.votes = totalVotes;
+
                 console.log(`\n📝 Updated: ${data.name}`);
-                console.log(`   Votes: ${existing.votes}/${MIN_VOTES}`);
+                console.log(`   Unique reporters: ${existing.reporters.length}`);
+                console.log(`   Total votes: ${existing.votes}/${MIN_VOTES}`);
             } else {
                 const newArtist = {
                     id: key,
@@ -421,7 +445,11 @@ async function main() {
         let newlyFlagged = 0;
 
         pending.artists = pending.artists.filter(artist => {
-            if (artist.votes >= MIN_VOTES) {
+            // Calculate total votes using helper function
+            const totalVotes = calculateTotalVotes(artist.reporterVotes || new Map());
+
+            if (totalVotes >= MIN_VOTES) {
+                artist.votes = totalVotes; // Update with calculated total
                 flagged.artists.push(artist);
                 newlyFlagged++;
                 console.log(`\n🚩 FLAGGED: ${artist.name}`);
