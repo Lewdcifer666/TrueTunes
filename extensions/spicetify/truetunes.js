@@ -5,6 +5,8 @@
     const GITHUB_RAW = "https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/flagged.json";
     const GITHUB_API = "https://api.github.com/repos/Lewdcifer666/TrueTunes/issues";
     const ISSUE_URL = "https://github.com/Lewdcifer666/TrueTunes/issues/new";
+    const ADMIN_USERS = ['Lewdcifer666'];  // Add your GitHub username here
+    const ADMIN_BYPASS_DUPLICATE_CHECK = true;  // Allow voting multiple times
 
     // GitHub Device Flow OAuth
     const GITHUB_CLIENT_ID = "Ov23liuuPQQQ8ydHDkOm";
@@ -48,6 +50,11 @@
         displayedCount: 20,
         loadMoreStep: 20
     };
+
+    // ===== ADMIN CHECK FUNCTION =====
+    function isAdmin() {
+        return settings.githubLinked && ADMIN_USERS.includes(settings.githubUsername);
+    }
 
     // ===== GITHUB DEVICE FLOW OAUTH =====
 
@@ -384,7 +391,13 @@
         settings.githubLinked = true;
         saveSettings();
 
-        Spicetify.showNotification(`✓ Logged in as ${userData.login}`, false, 3000);
+        // Check if user is admin
+        if (isAdmin()) {
+            console.log('[TrueTunes] 🔓 ADMIN MODE ENABLED - Unlimited voting!');
+            Spicetify.showNotification(`✓ Logged in as ${userData.login} [ADMIN]`, false, 3000);
+        } else {
+            Spicetify.showNotification(`✓ Logged in as ${userData.login}`, false, 3000);
+        }
 
         await verifyRecentVotes();
         startCommunityFeedUpdates();
@@ -576,6 +589,9 @@
             highlightPlaylistItems();
 
             console.log(`[TrueTunes] Verified ${userStats.totalVotes} votes`);
+            if (isAdmin()) {
+                console.log('[TrueTunes] 🔓 ADMIN: You can vote unlimited times!');
+            }
         } catch (e) {
             console.error('[TrueTunes] Error verifying votes:', e);
         }
@@ -603,6 +619,11 @@
     }
 
     function hasVoted(artistId) {
+        // ADMIN BYPASS: Allow voting even if already voted
+        if (isAdmin() && ADMIN_BYPASS_DUPLICATE_CHECK) {
+            console.log('[TrueTunes] 🔓 ADMIN: Bypassing duplicate vote check');
+            return false; // Pretend they haven't voted
+        }
         return votedArtists.has(artistId);
     }
 
