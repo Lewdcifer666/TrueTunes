@@ -800,6 +800,35 @@
 
         const MIN_VOTES = 10;
 
+        // ===== NEW: Calculate historical vote progression =====
+        // Group issues by artist ID and assign cumulative vote numbers
+        const artistIssueGroups = new Map();
+
+        // First, group all issues by artist ID
+        communityFeed.recentActivity.forEach(activity => {
+            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+            if (!normalizedId) return;
+
+            if (!artistIssueGroups.has(normalizedId)) {
+                artistIssueGroups.set(normalizedId, []);
+            }
+            artistIssueGroups.get(normalizedId).push(activity);
+        });
+
+        // For each artist group, sort by creation date and assign vote numbers
+        const issueVoteCounts = new Map(); // Map of issueNumber -> voteCount
+
+        artistIssueGroups.forEach((issues, artistId) => {
+            // Sort by creation date (oldest first)
+            issues.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            // Assign cumulative vote numbers
+            issues.forEach((issue, index) => {
+                issueVoteCounts.set(issue.issueNumber, index + 1);
+            });
+        });
+        // ===== END NEW CODE =====
+
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
             <!-- Header -->
@@ -829,14 +858,12 @@
                 </div>
             </div>
 
-            <!-- Activity Feed with Progress -->
+            <!-- Activity Feed with Historical Progression -->
             <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
                 ${communityFeed.recentActivity.length > 0 ? communityFeed.recentActivity.map(activity => {
-            // NEW: Get vote progress for this artist
-            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
-            const pending = window.trueTunesPending?.get(normalizedId);
-            const progress = pending ? pending.votes : 0;
-            const progressPercent = (progress / MIN_VOTES) * 100;
+            // Get the HISTORICAL vote count for this specific issue
+            const historicalVoteCount = issueVoteCounts.get(activity.issueNumber) || 1;
+            const progressPercent = (historicalVoteCount / MIN_VOTES) * 100;
 
             return `
                     <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${activity.issueNumber}" 
@@ -871,14 +898,14 @@
                                     <span>•</span>
                                     <span>💬 ${activity.comments}</span>
                                 ` : ''}
-                                ${pending ? `
+                                ${activity.state === 'open' ? `
                                     <span>•</span>
-                                    <span style="color: #7e22ce; font-weight: 600;">${progress}/${MIN_VOTES} votes</span>
+                                    <span style="color: #7e22ce; font-weight: 600;">${historicalVoteCount}/${MIN_VOTES} votes</span>
                                 ` : ''}
                             </div>
                             
-                            <!-- NEW: Progress Bar -->
-                            ${pending && activity.state === 'open' ? `
+                            <!-- Historical Progress Bar -->
+                            ${activity.state === 'open' ? `
                                 <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
                                     <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
                                 </div>
@@ -2055,13 +2082,24 @@
 
             // Debounce the button addition
             artistPageButtonDebounce = setTimeout(() => {
-                // IMPROVED: Better artist page detection
-                const onArtistPage = window.location.pathname.includes('/artist/') ||
-                    document.querySelector('[data-testid="artist-page"]') ||
-                    document.querySelector('.main-entityHeader-container[data-testid="entity-header"]');
+                // ===== IMPROVED ARTIST PAGE DETECTION =====
+                const pathname = window.location.pathname;
+                const isArtistURL = pathname.includes('/artist/');
+
+                // Multiple detection strategies
+                const artistPageIndicators = [
+                    document.querySelector('[data-testid="artist-page"]'),
+                    document.querySelector('section[aria-label*="Artist"]'),
+                    document.querySelector('[data-testid="entity-header"]'),
+                    document.querySelector('.main-entityHeader-container'),
+                    // Check for "Popular" section which only exists on artist pages
+                    Array.from(document.querySelectorAll('h2')).find(h => h.textContent.trim() === 'Popular')
+                ];
+
+                const onArtistPage = isArtistURL || artistPageIndicators.some(el => el !== null && el !== undefined);
 
                 if (!onArtistPage) {
-                    return; // Silent return, no spam
+                    return; // Silent return
                 }
 
                 const artistId = getCurrentArtistPageId();
@@ -2081,20 +2119,84 @@
                 const alreadyVoted = hasVoted(artistId);
                 const isFlagged = flaggedArtists.has(artistId);
 
+                // Remove existing button if present
                 const existingButton = document.querySelector('.truetunes-artist-page-button');
                 if (existingButton) {
                     existingButton.remove();
                 }
 
-                // IMPROVED: Multiple selector strategies for action bar
-                const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow') ||
-                    document.querySelector('[data-testid="action-bar-row"]') ||
-                    document.querySelector('.main-entityHeader-actionBar');
+                // ===== IMPROVED ACTION BAR FINDING =====
+                // Try multiple strategies to find where to place the button
 
+                let actionBarRow = null;
+
+                // Strategy 1: Look for the main action bar row (most common)
+                actionBarRow = document.querySelector('.main-actionBar-ActionBarRow');
+
+                // Strategy 2: Look for entity header action bar
                 if (!actionBarRow) {
-                    return; // Silent return
+                    actionBarRow = document.querySelector('.main-entityHeader-actionBar');
                 }
 
+                // Strategy 3: Look for the action bar within entity header
+                if (!actionBarRow) {
+                    const entityHeader = document.querySelector('[data-testid="entity-header"]');
+                    if (entityHeader) {
+                        actionBarRow = entityHeader.querySelector('[class*="ActionBar"]') ||
+                            entityHeader.querySelector('[class*="actionBar"]');
+                    }
+                }
+
+                // Strategy 4: Look for any element with action bar in class name
+                if (!actionBarRow) {
+                    actionBarRow = document.querySelector('[class*="ActionBarRow"]') ||
+                        document.querySelector('[class*="actionBarRow"]');
+                }
+
+                // Strategy 5: Find by looking for Play/Follow button container
+                if (!actionBarRow) {
+                    const playButton = document.querySelector('[data-testid="play-button"]') ||
+                        document.querySelector('[aria-label*="Play"]');
+                    if (playButton) {
+                        // Go up the DOM tree to find the container
+                        let parent = playButton.parentElement;
+                        let attempts = 0;
+                        while (parent && attempts < 5) {
+                            // Look for a container that has multiple buttons
+                            const buttons = parent.querySelectorAll('button');
+                            if (buttons.length >= 2) { // At least Play + Follow
+                                actionBarRow = parent;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                            attempts++;
+                        }
+                    }
+                }
+
+                // Strategy 6: Last resort - find the topmost button container in main view
+                if (!actionBarRow) {
+                    const mainView = document.querySelector('.main-view-container__scroll-node-child') ||
+                        document.querySelector('[data-testid="main-view-container"]');
+                    if (mainView) {
+                        // Find first div with multiple buttons
+                        const allDivs = mainView.querySelectorAll('div');
+                        for (const div of allDivs) {
+                            const buttons = div.querySelectorAll(':scope > button');
+                            if (buttons.length >= 2) {
+                                actionBarRow = div;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!actionBarRow) {
+                    console.log('[TrueTunes] Could not find action bar for button placement');
+                    return; // Give up silently
+                }
+
+                // ===== CREATE THE BUTTON =====
                 const buttonContainer = document.createElement('div');
                 buttonContainer.className = 'truetunes-artist-page-button';
                 buttonContainer.style.cssText = `
@@ -2104,6 +2206,7 @@
                 margin-left: 8px;
             `;
 
+                // Add flagged badge if artist is already flagged
                 if (isFlagged) {
                     const flagged = flaggedArtists.get(artistId);
                     const badge = document.createElement('div');
@@ -2125,6 +2228,7 @@
                     buttonContainer.appendChild(badge);
                 }
 
+                // Create the vote button
                 const voteButton = document.createElement('button');
                 voteButton.className = 'truetunes-artist-vote-btn';
                 voteButton.style.cssText = `
@@ -2179,12 +2283,23 @@
                 }
 
                 buttonContainer.appendChild(voteButton);
-                actionBarRow.appendChild(buttonContainer);
+
+                // Insert the button into the action bar
+                // Try to insert after the last button, or just append
+                const lastButton = actionBarRow.querySelector('button:last-of-type');
+                if (lastButton && lastButton.parentElement === actionBarRow) {
+                    actionBarRow.insertBefore(buttonContainer, lastButton.nextSibling);
+                } else {
+                    actionBarRow.appendChild(buttonContainer);
+                }
+
+                console.log('[TrueTunes] ✓ Button added to artist page:', artistName);
 
             }, 500); // 500ms debounce
 
         } catch (e) {
             // Silent error handling - no console spam
+            console.error('[TrueTunes] Error in addArtistPageVoteButton:', e.message);
         }
     }
 
@@ -2194,24 +2309,62 @@
 
     function watchForArtistPages() {
         let lastUrl = window.location.href;
+        let checkInterval = null;
 
-        function checkUrl() {
+        function checkUrlAndAddButton() {
             const currentUrl = window.location.href;
+
+            // URL changed
             if (currentUrl !== lastUrl) {
                 lastUrl = currentUrl;
-                lastProcessedArtistId = null;
+                lastProcessedArtistId = null; // Reset processed artist
 
+                // Clear any existing buttons
+                const existingButton = document.querySelector('.truetunes-artist-page-button');
+                if (existingButton) {
+                    existingButton.remove();
+                }
+
+                // If we're on an artist page, add the button
                 if (currentUrl.includes('/artist/')) {
-                    // Wait a bit longer for page to fully load
-                    setTimeout(() => addArtistPageVoteButton(), 1500);
+                    setTimeout(() => {
+                        addArtistPageVoteButton();
+                    }, 1000); // Wait for page to load
+                }
+            }
+            // Even if URL hasn't changed, check if we should add button
+            else if (currentUrl.includes('/artist/')) {
+                const buttonExists = document.querySelector('.truetunes-artist-page-button');
+                if (!buttonExists) {
+                    addArtistPageVoteButton();
                 }
             }
         }
 
-        setInterval(checkUrl, 1000);
+        // Check every 2 seconds
+        checkInterval = setInterval(checkUrlAndAddButton, 2000);
 
+        // Also use MutationObserver for faster detection
+        const observer = new MutationObserver((mutations) => {
+            // Only check if we're potentially on an artist page
+            if (window.location.pathname.includes('/artist/')) {
+                const buttonExists = document.querySelector('.truetunes-artist-page-button');
+                if (!buttonExists) {
+                    addArtistPageVoteButton();
+                }
+            }
+        });
+
+        // Observe the main content area for changes
+        const mainContent = document.querySelector('.main-view-container') || document.body;
+        observer.observe(mainContent, {
+            childList: true,
+            subtree: true
+        });
+
+        // Initial check
         setTimeout(() => {
-            if (isOnArtistPage()) {
+            if (window.location.pathname.includes('/artist/')) {
                 addArtistPageVoteButton();
             }
         }, 2000);
