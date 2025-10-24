@@ -51,6 +51,10 @@
         loadMoreStep: 20
     };
 
+    // ===== DEBOUNCING & STATE MANAGEMENT =====
+    let artistPageButtonDebounce = null;
+    let lastProcessedArtistId = null;
+
     // ===== ADMIN CHECK FUNCTION =====
     function isAdmin() {
         return settings.githubLinked && ADMIN_USERS.includes(settings.githubUsername);
@@ -657,14 +661,33 @@
         const totalFlagged = flaggedArtists.size;
         const MIN_VOTES = 10;
 
-        // Get last 3 votes with progress
-        const recentVotes = userStats.votedArtists.slice(0, 3).map(vote => {
-            const pending = window.trueTunesPending?.get(vote.artistId);
-            return {
-                ...vote,
-                progress: pending ? { current: pending.votes, needed: MIN_VOTES } : null
-            };
-        });
+        // FIXED: Group votes by artist ID and aggregate progress
+        const votesByArtist = new Map();
+        for (const vote of userStats.votedArtists) {
+            if (!votesByArtist.has(vote.artistId)) {
+                votesByArtist.set(vote.artistId, {
+                    artistId: vote.artistId,
+                    artistName: vote.artistName,
+                    issues: [],
+                    state: vote.state,
+                    createdAt: vote.createdAt
+                });
+            }
+            votesByArtist.get(vote.artistId).issues.push(vote.issueNumber);
+        }
+
+        // Get last 3 unique artists with aggregated progress
+        const recentVotes = Array.from(votesByArtist.values())
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 3)
+            .map(vote => {
+                const pending = window.trueTunesPending?.get(vote.artistId);
+                return {
+                    ...vote,
+                    totalIssues: vote.issues.length,
+                    progress: pending ? { current: pending.votes, needed: MIN_VOTES } : null
+                };
+            });
 
         return `
         <div style="padding: 24px; height: 100%; display: flex; flex-direction: column;">
@@ -706,7 +729,7 @@
             
             <div style="margin-bottom: 16px;">
                 ${recentVotes.length > 0 ? recentVotes.map(vote => `
-                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
+                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issues[0]}" 
                        target="_blank"
                        style="display: block; background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: white; transition: all 0.2s;"
                        onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
@@ -715,7 +738,7 @@
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
                                 <div style="font-size: 11px; color: #999;">
-                                    <span style="color: ${vote.state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">Issue #${vote.issueNumber}</span>
+                                    <span style="color: ${vote.state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">${vote.totalIssues} issue${vote.totalIssues > 1 ? 's' : ''}</span>
                                     <span style="margin: 0 6px;">•</span>
                                     <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 </div>
@@ -1497,9 +1520,10 @@
         renderTrueTunesPanel();
     }
 
+    // FIXED: Improved button placement and error handling
     function createTrueTunesButton() {
-        const topBar = document.querySelector('.main-topBar-container');
-        if (!topBar) {
+        const topBarRight = document.querySelector('.main-topBar-topbarContentRight');
+        if (!topBarRight) {
             setTimeout(createTrueTunesButton, 500);
             return;
         }
@@ -1518,7 +1542,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 16px;
+            margin-right: 8px;
             box-shadow: 0 4px 12px rgba(126, 34, 206, 0.3);
             transition: all 0.2s;
             position: relative;
@@ -1557,14 +1581,10 @@
 
         button.addEventListener('click', showTrueTunesPanel);
 
-        const userWidget = topBar.querySelector('[data-testid="user-widget-link"]');
-        if (userWidget && userWidget.parentElement) {
-            userWidget.parentElement.insertBefore(button, userWidget.parentElement.firstChild);
-        } else {
-            topBar.appendChild(button);
-        }
+        // Insert before the first child in topbarContentRight
+        topBarRight.insertBefore(button, topBarRight.firstChild);
 
-        console.log('[TrueTunes] Button created');
+        console.log('[TrueTunes] Button created in topbar');
     }
 
     // ===== CORE FUNCTIONALITY =====
@@ -1730,14 +1750,11 @@
 
     function getCurrentArtistPageId() {
         try {
-            console.log('[TrueTunes] 🔍 Looking for artist ID...');
-
             if (typeof Spicetify !== 'undefined' && Spicetify.Platform?.History) {
                 try {
                     const pathname = Spicetify.Platform.History.location.pathname;
                     const match = pathname.match(/\/artist\/([a-zA-Z0-9]+)/);
                     if (match) {
-                        console.log('[TrueTunes] ✅ Artist ID from Spicetify pathname:', match[1]);
                         return match[1];
                     }
                 } catch (e) { }
@@ -1745,7 +1762,6 @@
 
             const urlMatch = window.location.pathname.match(/\/artist\/([a-zA-Z0-9]+)/);
             if (urlMatch) {
-                console.log('[TrueTunes] ✅ Artist ID from URL:', urlMatch[1]);
                 return urlMatch[1];
             }
 
@@ -1755,18 +1771,15 @@
 
                 let match = href.match(/spotify:artist:([a-zA-Z0-9]+)/);
                 if (match) {
-                    console.log('[TrueTunes] ✅ Artist ID from link (URI format):', match[1]);
                     return match[1];
                 }
 
                 match = href.match(/\/artist\/([a-zA-Z0-9]+)/);
                 if (match) {
-                    console.log('[TrueTunes] ✅ Artist ID from link (path format):', match[1]);
                     return match[1];
                 }
             }
 
-            console.warn('[TrueTunes] ⚠️ Could not determine artist ID');
             return null;
         } catch (e) {
             console.error('[TrueTunes] Error getting artist ID:', e);
@@ -1774,12 +1787,8 @@
         }
     }
 
-    // NEW FUNCTION: Get artist name from the current artist page
-    // ============================================
     function getCurrentArtistPageName() {
         try {
-            console.log('[TrueTunes] 🔍 Looking for artist name...');
-
             const mainContent = document.querySelector('main, [role="main"]');
             if (mainContent) {
                 const headings = mainContent.querySelectorAll('h1, [class*="entityHeader"] h1, [class*="EntityHeader"] h1');
@@ -1789,7 +1798,6 @@
                         text.length > 2 &&
                         text.length < 100 &&
                         !['Popular', 'Discography', 'About', 'Featuring', 'Your Library', 'Playlists'].includes(text)) {
-                        console.log('[TrueTunes] ✅ Found artist name from main heading:', text);
                         return text;
                     }
                 }
@@ -1801,7 +1809,6 @@
                 if (heading) {
                     const text = heading.textContent.trim();
                     if (text && text.length > 2 && text.length < 100) {
-                        console.log('[TrueTunes] ✅ Found artist name from entity header:', text);
                         return text;
                     }
                 }
@@ -1814,12 +1821,10 @@
                     cleanTitle !== 'Spotify' &&
                     cleanTitle !== 'Your Library' &&
                     !cleanTitle.includes('Playlists')) {
-                    console.log('[TrueTunes] ✅ Found artist name from title:', cleanTitle);
                     return cleanTitle;
                 }
             }
 
-            console.warn('[TrueTunes] ⚠️ Could not determine artist name');
             return "Unknown Artist";
         } catch (e) {
             console.error('[TrueTunes] Error getting artist name:', e);
@@ -1827,8 +1832,6 @@
         }
     }
 
-    // NEW FUNCTION: Check if we're on an artist page
-    // ============================================
     function isOnArtistPage() {
         if (window.location.pathname.includes('/artist/') ||
             window.location.href.includes('spotify:artist:')) {
@@ -2058,7 +2061,6 @@
 
             const artistId = getArtistIdFromRow(row);
             if (!artistId) {
-                console.log('[TrueTunes] ⚠️ No artist ID found for row');
                 return;
             }
 
@@ -2096,13 +2098,11 @@
             for (const strategy of insertionStrategies) {
                 buttonContainer = strategy();
                 if (buttonContainer) {
-                    console.log('[TrueTunes] ✓ Found insertion point');
                     break;
                 }
             }
 
             if (!buttonContainer) {
-                console.log('[TrueTunes] ❌ Could not find insertion point for vote button');
                 return;
             }
 
@@ -2133,136 +2133,140 @@
             }
 
             buttonContainer.insertBefore(voteButton, buttonContainer.firstChild);
-            console.log(`[TrueTunes] ✓ Added vote button for: ${artistName}`);
 
         } catch (e) {
             console.error('[TrueTunes] Error in addVoteButtonToRow:', e);
         }
     }
 
+    // FIXED: Debounced artist page button addition with proper state tracking
     function addArtistPageVoteButton() {
         try {
-            console.log('[TrueTunes] 🎨 Adding artist page vote button...');
-
-            if (!isOnArtistPage()) {
-                console.log('[TrueTunes] Not on an artist page');
-                return;
+            // Clear any existing debounce timer
+            if (artistPageButtonDebounce) {
+                clearTimeout(artistPageButtonDebounce);
             }
 
-            const artistId = getCurrentArtistPageId();
-            const artistName = getCurrentArtistPageName();
+            // Debounce the button addition
+            artistPageButtonDebounce = setTimeout(() => {
+                if (!isOnArtistPage()) {
+                    return;
+                }
 
-            if (!artistId) {
-                console.log('[TrueTunes] ❌ Could not get artist ID');
-                return;
-            }
+                const artistId = getCurrentArtistPageId();
+                const artistName = getCurrentArtistPageName();
 
-            console.log(`[TrueTunes] 🎤 Artist: ${artistName} (${artistId})`);
+                if (!artistId) {
+                    return;
+                }
 
-            const alreadyVoted = hasVoted(artistId);
-            const isFlagged = flaggedArtists.has(artistId);
+                // Skip if we just processed this artist
+                if (lastProcessedArtistId === artistId) {
+                    return;
+                }
 
-            const existingButton = document.querySelector('.truetunes-artist-page-button');
-            if (existingButton) {
-                existingButton.remove();
-            }
+                lastProcessedArtistId = artistId;
 
-            const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow');
+                const alreadyVoted = hasVoted(artistId);
+                const isFlagged = flaggedArtists.has(artistId);
 
-            if (!actionBarRow) {
-                console.log('[TrueTunes] ❌ Could not find .main-actionBar-ActionBarRow');
-                return;
-            }
+                const existingButton = document.querySelector('.truetunes-artist-page-button');
+                if (existingButton) {
+                    existingButton.remove();
+                }
 
-            console.log('[TrueTunes] ✅ Found action bar row');
+                const actionBarRow = document.querySelector('.main-actionBar-ActionBarRow');
 
-            const buttonContainer = document.createElement('div');
-            buttonContainer.className = 'truetunes-artist-page-button';
-            buttonContainer.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        `;
+                if (!actionBarRow) {
+                    return;
+                }
 
-            if (isFlagged) {
-                const flagged = flaggedArtists.get(artistId);
-                const badge = document.createElement('div');
-                badge.style.cssText = `
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'truetunes-artist-page-button';
+                buttonContainer.style.cssText = `
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
-                padding: 8px 16px;
+                gap: 8px;
+            `;
+
+                if (isFlagged) {
+                    const flagged = flaggedArtists.get(artistId);
+                    const badge = document.createElement('div');
+                    badge.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 8px 16px;
+                    border-radius: 500px;
+                    background: rgba(239, 68, 68, 0.2);
+                    border: 1px solid rgba(239, 68, 68, 0.4);
+                    color: #ef4444;
+                    font-size: 14px;
+                    font-weight: 700;
+                    white-space: nowrap;
+                `;
+                    badge.innerHTML = `⚠️ AI (${flagged.votes})`;
+                    badge.title = `Flagged as AI-generated with ${flagged.votes} community votes`;
+                    buttonContainer.appendChild(badge);
+                }
+
+                const voteButton = document.createElement('button');
+                voteButton.className = 'truetunes-artist-vote-btn';
+                voteButton.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 8px 32px;
                 border-radius: 500px;
-                background: rgba(239, 68, 68, 0.2);
-                border: 1px solid rgba(239, 68, 68, 0.4);
-                color: #ef4444;
+                border: 1px solid ${alreadyVoted ? 'rgba(255, 255, 255, 0.3)' : 'rgba(239, 68, 68, 0.6)'};
+                background-color: ${alreadyVoted ? 'transparent' : 'rgba(239, 68, 68, 0.2)'};
+                color: ${alreadyVoted ? 'rgba(255, 255, 255, 0.7)' : '#ef4444'};
                 font-size: 14px;
                 font-weight: 700;
+                cursor: ${alreadyVoted ? 'not-allowed' : 'pointer'};
+                transition: all 0.2s;
                 white-space: nowrap;
+                min-height: 32px;
+                font-family: inherit;
             `;
-                badge.innerHTML = `⚠️ AI (${flagged.votes})`;
-                badge.title = `Flagged as AI-generated with ${flagged.votes} community votes`;
-                buttonContainer.appendChild(badge);
-            }
 
-            const voteButton = document.createElement('button');
-            voteButton.className = 'truetunes-artist-vote-btn';
-            voteButton.style.cssText = `
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 8px 32px;
-            border-radius: 500px;
-            border: 1px solid ${alreadyVoted ? 'rgba(255, 255, 255, 0.3)' : 'rgba(239, 68, 68, 0.6)'};
-            background-color: ${alreadyVoted ? 'transparent' : 'rgba(239, 68, 68, 0.2)'};
-            color: ${alreadyVoted ? 'rgba(255, 255, 255, 0.7)' : '#ef4444'};
-            font-size: 14px;
-            font-weight: 700;
-            cursor: ${alreadyVoted ? 'not-allowed' : 'pointer'};
-            transition: all 0.2s;
-            white-space: nowrap;
-            min-height: 32px;
-            font-family: inherit;
-        `;
+                if (alreadyVoted) {
+                    const voteData = votedArtists.get(artistId);
+                    voteButton.innerHTML = `✓ Voted`;
+                    voteButton.title = `You voted for ${artistName} in issue #${voteData.issueNumber}`;
+                    voteButton.disabled = true;
+                } else {
+                    voteButton.innerHTML = `🚨 Report AI`;
+                    voteButton.title = `Report ${artistName} as AI-generated`;
 
-            if (alreadyVoted) {
-                const voteData = votedArtists.get(artistId);
-                voteButton.innerHTML = `✓ Voted`;
-                voteButton.title = `You voted for ${artistName} in issue #${voteData.issueNumber}`;
-                voteButton.disabled = true;
-            } else {
-                voteButton.innerHTML = `🚨 Report AI`;
-                voteButton.title = `Report ${artistName} as AI-generated`;
+                    voteButton.addEventListener('mouseenter', () => {
+                        if (!alreadyVoted) {
+                            voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
+                            voteButton.style.borderColor = '#ef4444';
+                            voteButton.style.transform = 'scale(1.04)';
+                        }
+                    });
 
-                voteButton.addEventListener('mouseenter', () => {
-                    if (!alreadyVoted) {
-                        voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
-                        voteButton.style.borderColor = '#ef4444';
-                        voteButton.style.transform = 'scale(1.04)';
-                    }
-                });
+                    voteButton.addEventListener('mouseleave', () => {
+                        if (!alreadyVoted) {
+                            voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                            voteButton.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+                            voteButton.style.transform = 'scale(1)';
+                        }
+                    });
 
-                voteButton.addEventListener('mouseleave', () => {
-                    if (!alreadyVoted) {
-                        voteButton.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
-                        voteButton.style.borderColor = 'rgba(239, 68, 68, 0.6)';
-                        voteButton.style.transform = 'scale(1)';
-                    }
-                });
+                    voteButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        voteOnArtist(artistId, artistName);
+                    });
+                }
 
-                voteButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    console.log(`[TrueTunes] Voting for: ${artistName} (${artistId})`);
-                    voteOnArtist(artistId, artistName);
-                });
-            }
+                buttonContainer.appendChild(voteButton);
+                actionBarRow.appendChild(buttonContainer);
 
-            buttonContainer.appendChild(voteButton);
-            actionBarRow.appendChild(buttonContainer);
-
-            console.log(`[TrueTunes] ✅ Button added to action bar for ${artistName}`);
+            }, 500); // 500ms debounce
 
         } catch (e) {
             console.error('[TrueTunes] Error adding artist page button:', e);
@@ -2274,88 +2278,49 @@
         addArtistPageVoteButton();
     }
 
+    // FIXED: Simplified and optimized page watcher
     function watchForArtistPages() {
-        console.log('[TrueTunes] 👀 Setting up artist page watcher...');
+        let lastUrl = window.location.href;
 
-        let lastCheckedUrl = '';
-        let artistPageCheckTimer = null;
-
-        function checkForArtistPage() {
+        function checkUrl() {
             const currentUrl = window.location.href;
+            if (currentUrl !== lastUrl) {
+                lastUrl = currentUrl;
+                lastProcessedArtistId = null; // Reset processed artist on URL change
 
-            if (currentUrl !== lastCheckedUrl) {
-                lastCheckedUrl = currentUrl;
-
-                if (isOnArtistPage()) {
-                    console.log('[TrueTunes] 🎨 Artist page detected, adding button...');
-
-                    if (artistPageCheckTimer) {
-                        clearTimeout(artistPageCheckTimer);
-                    }
-
-                    setTimeout(() => addArtistPageVoteButton(), 500);
-                    setTimeout(() => addArtistPageVoteButton(), 1000);
-                    setTimeout(() => addArtistPageVoteButton(), 2000);
+                if (currentUrl.includes('/artist/')) {
+                    addArtistPageVoteButton();
                 }
             }
         }
 
-        const observer = new MutationObserver(() => {
-            checkForArtistPage();
-        });
+        // Check on URL changes
+        setInterval(checkUrl, 1000); // Check every second instead of watching mutations
 
-        observer.observe(document.querySelector('title') || document.body, {
-            subtree: true,
-            characterData: true,
-            childList: true
-        });
-
-        setTimeout(() => checkForArtistPage(), 1000);
-        setInterval(() => checkForArtistPage(), 5000);
-
-        console.log('[TrueTunes] ✅ Artist page watcher active');
+        // Initial check
+        setTimeout(() => {
+            if (isOnArtistPage()) {
+                addArtistPageVoteButton();
+            }
+        }, 1500);
     }
 
-
-
     function observeArtistPageTracks() {
-        console.log('[TrueTunes] 👀 Setting up artist page observer...');
+        let observerTimeout;
 
-        const observer = new MutationObserver((mutations) => {
-            // Check if we're on an artist page
-            if (!window.location.href.includes('/artist/')) return;
-
-            let shouldProcess = false;
-
-            for (const mutation of mutations) {
-                // Check if any added nodes contain tracks
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType === 1) { // Element node
-                        if (node.matches && (
-                            node.matches('[data-testid="tracklist-row"]') ||
-                            node.matches('.main-trackList-trackListRow') ||
-                            node.querySelector('[data-testid="tracklist-row"]')
-                        )) {
-                            shouldProcess = true;
-                            break;
-                        }
-                    }
-                }
-                if (shouldProcess) break;
-            }
-
-            if (shouldProcess) {
-                console.log('[TrueTunes] 🎵 New tracks detected on artist page');
-                setTimeout(() => addVoteButtonsToArtistPage(), 300);
-            }
+        const observer = new MutationObserver(() => {
+            // Debounce mutations
+            clearTimeout(observerTimeout);
+            observerTimeout = setTimeout(() => {
+                if (!window.location.href.includes('/artist/')) return;
+                addVoteButtonsToArtistPage();
+            }, 500);
         });
 
         observer.observe(document.body, {
             childList: true,
             subtree: true
         });
-
-        console.log('[TrueTunes] ✓ Artist page observer active');
     }
 
     function addAIBadgeToRow(row, artist) {
@@ -2418,8 +2383,7 @@
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 highlightPlaylistItems();
-                addVoteButtonsToArtistPage(); // Also check artist pages
-            }, 300);
+            }, 500); // Increased debounce time
         };
 
         const observer = new MutationObserver(debouncedHighlight);
@@ -2431,13 +2395,12 @@
 
         setTimeout(() => {
             highlightPlaylistItems();
-            addVoteButtonsToArtistPage();
         }, 2000);
 
+        // Reduced interval frequency
         setInterval(() => {
             highlightPlaylistItems();
-            addVoteButtonsToArtistPage();
-        }, 5000);
+        }, 10000); // Check every 10 seconds instead of 5
     }
 
     // ===== INITIALIZATION =====
@@ -2470,30 +2433,6 @@
 
             watchPlaylistChanges();
             watchForArtistPages();
-
-            setTimeout(() => {
-                if (isOnArtistPage()) {
-                    console.log('[TrueTunes] 🎨 Started on artist page');
-                    addArtistPageVoteButton();
-                }
-            }, 2000);
-
-            let lastUrl = location.href;
-            new MutationObserver(() => {
-                const currentUrl = location.href;
-                if (currentUrl !== lastUrl) {
-                    lastUrl = currentUrl;
-
-                    // Check if we're on an artist page
-                    if (currentUrl.includes('/artist/')) {
-                        console.log('[TrueTunes] Artist page detected, adding vote buttons...');
-                        setTimeout(() => {
-                            addVoteButtonsToArtistPage();
-                            highlightPlaylistItems();
-                        }, 1000);
-                    }
-                }
-            }).observe(document, { subtree: true, childList: true });
 
             setInterval(() => loadFlaggedList(), 6 * 60 * 60 * 1000);
 
