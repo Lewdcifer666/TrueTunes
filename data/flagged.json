@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-25T02:31:59.763Z",
-  "updated": "2025-10-25T02:31:59.763Z",
-  "total": 5,
+  "version": "2025-10-25T03:10:06.191Z",
+  "updated": "2025-10-25T03:10:06.191Z",
+  "total": 7,
   "artists": [
     {
       "id": "test1",
@@ -47,6 +47,36 @@
       },
       "votes": 10,
       "added": "2025-10-19T16:58:02.118Z"
+    },
+    {
+      "id": "spotify:3E8vJy6ND5emzVHCGlyHp4",
+      "name": "Sunday Night Low",
+      "platforms": {
+        "spotify": "3E8vJy6ND5emzVHCGlyHp4"
+      },
+      "votes": 11,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-23T21:17:40.075Z",
+      "reporterVotes": {
+        "Lewdcifer666": 11
+      }
+    },
+    {
+      "id": "spotify:0a97V3mDhGyNg93Dcf9Ahj",
+      "name": "Aventhis",
+      "platforms": {
+        "spotify": "0a97V3mDhGyNg93Dcf9Ahj"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-22T20:49:26.335Z",
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      }
     }
   ]
 }

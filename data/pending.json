@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-25T02:31:59.763Z",
-  "updated": "2025-10-25T02:31:59.763Z",
+  "version": "2025-10-25T03:10:06.191Z",
+  "updated": "2025-10-25T03:10:06.191Z",
   "artists": [
     {
       "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
@@ -27,18 +27,6 @@
       "added": "2025-10-19T23:10:59.777Z"
     },
     {
-      "id": "spotify:0a97V3mDhGyNg93Dcf9Ahj",
-      "name": "Aventhis",
-      "platforms": {
-        "spotify": "0a97V3mDhGyNg93Dcf9Ahj"
-      },
-      "votes": 1,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "added": "2025-10-22T20:49:26.335Z"
-    },
-    {
       "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
       "name": "The Dad Bods Pop Punk",
       "platforms": {
@@ -48,19 +36,10 @@
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-23T21:12:49.888Z"
-    },
-    {
-      "id": "spotify:3E8vJy6ND5emzVHCGlyHp4",
-      "name": "Sunday Night Low",
-      "platforms": {
-        "spotify": "3E8vJy6ND5emzVHCGlyHp4"
-      },
-      "votes": 11,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "added": "2025-10-23T21:17:40.075Z"
+      "added": "2025-10-23T21:12:49.888Z",
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      }
     },
     {
       "id": "spotify:6ydIK3fZelJNbF5KwgZUga",
@@ -72,7 +51,10 @@
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-24T19:19:36.320Z"
+      "added": "2025-10-24T19:19:36.320Z",
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      }
     },
     {
       "id": "spotify:1MSx7eCIGLByF6My5VMgrH",
@@ -84,7 +66,10 @@
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-24T19:34:24.898Z"
+      "added": "2025-10-24T19:34:24.898Z",
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      }
     },
     {
       "id": "spotify:2bRCIbSmgAXitACxT5ZpQy",
@@ -96,7 +81,10 @@
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-24T19:35:20.875Z"
+      "added": "2025-10-24T19:35:20.875Z",
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      }
     }
   ]
 }
