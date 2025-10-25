@@ -1914,6 +1914,7 @@
                 font-weight: 600;
                 margin-left: 8px;
                 vertical-align: middle;
+                flex-shrink: 0;
             }
             
             .truetunes-vote-button {
@@ -1922,6 +1923,7 @@
                 margin-right: 8px;
                 opacity: 1;
                 transition: opacity 0.2s;
+                flex-shrink: 0;
             }
             
             .truetunes-vote-button.not-voted {
@@ -2458,6 +2460,13 @@
         setInterval(() => {
             highlightPlaylistItems();
         }, 10000);
+
+        // Update overlay on scroll
+        document.addEventListener('scroll', () => {
+            if (overlayContainer) {
+                updateOverlayElements();
+            }
+        }, true);
     }
 
     // ===== INITIALIZATION =====
@@ -2489,7 +2498,7 @@
             watchPlaylistChanges();
             watchForArtistPages();
 
-            setInterval(() => loadFlaggedList(), 6 * 60 * 60 * 1000);
+            setInterval(() => loadFlaggedList(), 60 * 1000); // Check every 60 seconds instead of 6 hours
 
             if (settings.githubLinked) {
                 setInterval(() => verifyRecentVotes(), settings.verificationInterval);
