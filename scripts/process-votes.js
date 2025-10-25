@@ -422,13 +422,20 @@ async function main() {
                 console.log(`\n📝 Updated: ${data.name}`);
                 console.log(`   Unique reporters: ${existing.reporters.length}`);
                 console.log(`   Total votes: ${existing.votes}/${MIN_VOTES}`);
+
+                // NEW: Check if this update pushed it over threshold
+                if (totalVotes >= MIN_VOTES) {
+                    console.log(`   🎯 THRESHOLD REACHED!`);
+                }
             } else {
+                // New artist
                 const newArtist = {
                     id: key,
                     name: data.name,
                     platforms: { [data.platform]: data.id },
                     votes: data.reporters.size,
                     reporters: Array.from(data.reporters),
+                    reporterVotes: data.reporterVotes,
                     added: new Date().toISOString()
                 };
                 pending.artists.push(newArtist);
@@ -460,6 +467,7 @@ async function main() {
                     const artistData = artistVotes.get(artistKey);
                     thresholdIssues.push(...artistData.issueNumbers);
                     console.log(`   Closing ${artistData.issueNumbers.length} related issues`);
+                    console.log(`   Issue numbers: ${artistData.issueNumbers.join(', ')}`);
                 }
 
                 return false;
@@ -508,6 +516,46 @@ async function main() {
         console.log('\n' + '='.repeat(60));
         console.log('Closing issues...');
         console.log('='.repeat(60));
+
+        // Group threshold issues by artist for better comments
+        const issuesByArtist = new Map();
+        for (const issueNumber of thresholdIssues) {
+            // Find which artist this issue belongs to
+            const issue = issues.find(i => i.number === issueNumber);
+            if (issue) {
+                const vote = parseVote(issue);
+                if (vote) {
+                    if (!issuesByArtist.has(vote.artist)) {
+                        issuesByArtist.set(vote.artist, []);
+                    }
+                    issuesByArtist.get(vote.artist).push(issueNumber);
+                }
+            }
+        }
+
+        // Close issues by artist with informative comments
+        for (const [artistName, issueNumbers] of issuesByArtist) {
+            console.log(`\n🚩 Closing ${issueNumbers.length} issues for: ${artistName}`);
+
+            for (const issueNumber of issueNumbers) {
+                try {
+                    // Add comment before closing
+                    await addCommentToIssue(issueNumber,
+                        `✅ **Threshold Reached!**\n\n` +
+                        `**${artistName}** has been flagged with 10+ community votes.\n\n` +
+                        `All ${issueNumbers.length} related issues are being closed.\n\n` +
+                        `The artist is now listed in [flagged.json](https://github.com/${REPO}/blob/main/data/flagged.json).`
+                    );
+                    console.log(`   ✓ Added comment to #${issueNumber}`);
+
+                    // Close the issue
+                    await closeIssue(issueNumber, 'completed');
+                    console.log(`   ✓ Closed #${issueNumber}`);
+                } catch (e) {
+                    console.error(`   ✗ Failed to close #${issueNumber}:`, e.message);
+                }
+            }
+        }
 
         for (const invalid of invalidIssues) {
             try {
