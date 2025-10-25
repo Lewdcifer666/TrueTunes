@@ -19,6 +19,9 @@
     let votedArtists = new Map();
     let isProcessing = false;
     let currentTab = 'account';
+    let spicyLyricsWatcherActive = false;
+    let skipButtonInitialized = false;
+    let spicyWatcherRunning = false;
 
     let settings = {
         githubToken: null,
@@ -1298,6 +1301,9 @@
             document.getElementById('truetunes-setting-skip')?.addEventListener('change', (e) => {
                 settings.autoSkip = e.target.checked;
                 saveSettings();
+
+                // Update the now playing bar toggle button
+                updateSkipToggleContent();
             });
 
             document.getElementById('truetunes-setting-hide')?.addEventListener('change', (e) => {
@@ -1972,6 +1978,48 @@
                 box-shadow: none;
                 background: rgba(100, 100, 100, 0.2);
             }
+
+            /* Skip AI Toggle Button */
+            .truetunes-skip-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                border: 1px solid;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 700;
+                transition: all 0.2s;
+                margin: 0 4px;
+                white-space: nowrap;
+                user-select: none;
+            }
+
+            .truetunes-skip-toggle.enabled {
+                background: rgba(34, 197, 94, 0.2);
+                border-color: rgba(34, 197, 94, 0.4);
+                color: #22c55e;
+            }
+
+            .truetunes-skip-toggle.enabled:hover {
+                background: rgba(34, 197, 94, 0.3);
+                border-color: #22c55e;
+                transform: scale(1.05);
+            }
+
+            .truetunes-skip-toggle.disabled {
+                background: rgba(100, 100, 100, 0.1);
+                border-color: rgba(100, 100, 100, 0.3);
+                color: #999;
+            }
+
+            .truetunes-skip-toggle.disabled:hover {
+                background: rgba(100, 100, 100, 0.2);
+                border-color: rgba(100, 100, 100, 0.4);
+                transform: scale(1.05);
+            }
         `;
             document.head.appendChild(style);
         } catch (e) {
@@ -2385,6 +2433,165 @@
         }, 2000);
     }
 
+    // ===== COMPLETE SKIP AI TOGGLE SYSTEM =====
+    // Copy ALL of these functions into your code
+
+    // Helper: Get existing button or create new one
+    function getSkipButton() {
+        let btn = document.getElementById('truetunes-skip-toggle');
+
+        if (btn) {
+            return btn; // Reuse existing
+        }
+
+        // Create new
+        btn = document.createElement('button');
+        btn.id = 'truetunes-skip-toggle';
+        btn.className = `truetunes-skip-toggle ${settings.autoSkip ? 'enabled' : 'disabled'}`;
+        btn.setAttribute('aria-label', 'Toggle Auto-Skip AI Tracks');
+
+        updateSkipToggleContent(btn);
+
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleAutoSkip();
+        });
+
+        return btn;
+    }
+
+    // Main: Create and position button
+    function createSkipAIToggle() {
+        if (skipButtonInitialized) {
+            return; // Already initialized
+        }
+
+        const extraControls = document.querySelector('.main-nowPlayingBar-extraControls');
+        if (!extraControls) {
+            setTimeout(createSkipAIToggle, 1000);
+            return;
+        }
+
+        skipButtonInitialized = true;
+
+        // Get button (existing or new)
+        const btn = getSkipButton();
+
+        // If already in DOM, don't re-add
+        if (btn.parentElement) {
+            return;
+        }
+
+        // Find Spicy Lyrics
+        const spicy = extraControls.querySelector('[id^="SpicyLyrics"]');
+
+        if (spicy) {
+            // Found it - insert before
+            extraControls.insertBefore(btn, spicy);
+            console.log('[TrueTunes] ✓ Skip AI button created before Spicy Lyrics');
+        } else {
+            // Not found - insert at start and watch
+            extraControls.insertBefore(btn, extraControls.firstChild);
+            console.log('[TrueTunes] Skip AI button created, watching for Spicy Lyrics...');
+            watchForSpicyLyrics();
+        }
+    }
+
+    // Watcher: Reposition when Spicy Lyrics appears
+    function watchForSpicyLyrics() {
+        if (spicyWatcherRunning) return;
+        spicyWatcherRunning = true;
+
+        let attempts = 0;
+
+        const check = setInterval(() => {
+            const btn = document.getElementById('truetunes-skip-toggle');
+            const extraControls = document.querySelector('.main-nowPlayingBar-extraControls');
+
+            if (!btn || !extraControls) {
+                clearInterval(check);
+                spicyWatcherRunning = false;
+                return;
+            }
+
+            const spicy = extraControls.querySelector('[id^="SpicyLyrics"]');
+
+            if (spicy && spicy.parentElement === extraControls) { // FIX: Check parent
+                const buttons = Array.from(extraControls.children);
+                const skipIdx = buttons.indexOf(btn);
+                const spicyIdx = buttons.indexOf(spicy);
+
+                if (skipIdx > spicyIdx && btn.parentElement === extraControls) { // FIX: Check parent
+                    extraControls.removeChild(btn);
+                    extraControls.insertBefore(btn, spicy);
+                    console.log('[TrueTunes] ✓ Repositioned before Spicy Lyrics');
+                }
+
+                clearInterval(check);
+                spicyWatcherRunning = false;
+            } else if (++attempts >= 20) {
+                clearInterval(check);
+                spicyWatcherRunning = false;
+            }
+        }, 500);
+    }
+
+    // Update: Button content based on settings
+    function updateSkipToggleContent(button) {
+        if (!button) {
+            button = document.getElementById('truetunes-skip-toggle');
+            if (!button) return;
+        }
+
+        if (settings.autoSkip) {
+            button.className = 'truetunes-skip-toggle enabled';
+            button.innerHTML = '⏭️ Skip AI';
+            button.title = 'Auto-skip is ON - AI tracks will be skipped automatically';
+        } else {
+            button.className = 'truetunes-skip-toggle disabled';
+            button.innerHTML = '⏸️ Skip AI';
+            button.title = 'Auto-skip is OFF - Click to enable automatic skipping of AI tracks';
+        }
+    }
+
+    // Toggle: Handle button clicks
+    function toggleAutoSkip() {
+        settings.autoSkip = !settings.autoSkip;
+        saveSettings();
+
+        updateSkipToggleContent();
+
+        const checkbox = document.getElementById('truetunes-setting-skip');
+        if (checkbox) {
+            checkbox.checked = settings.autoSkip;
+        }
+
+        Spicetify.showNotification(
+            settings.autoSkip
+                ? '✓ Auto-skip enabled - AI tracks will be skipped'
+                : '✗ Auto-skip disabled',
+            false,
+            2000
+        );
+    }
+
+    // Monitor: Keep button alive
+    function watchNowPlayingBar() {
+        setTimeout(createSkipAIToggle, 2000);
+
+        setInterval(() => {
+            const btn = document.getElementById('truetunes-skip-toggle');
+
+            if (!btn) {
+                skipButtonInitialized = false;
+                createSkipAIToggle();
+            } else {
+                updateSkipToggleContent(btn);
+            }
+        }, 5000); // Changed from 15000 to 5000 (5 seconds instead of 15)
+    }
+
     function addAIBadgeToRow(row, artist) {
         try {
             if (row.querySelector('.truetunes-badge')) return;
@@ -2497,6 +2704,7 @@
 
             watchPlaylistChanges();
             watchForArtistPages();
+            watchNowPlayingBar();
 
             setInterval(() => loadFlaggedList(), 60 * 1000); // Check every 60 seconds instead of 6 hours
 
