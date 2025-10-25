@@ -2667,13 +2667,6 @@
         setInterval(() => {
             highlightPlaylistItems();
         }, 10000);
-
-        // Update overlay on scroll
-        document.addEventListener('scroll', () => {
-            if (overlayContainer) {
-                updateOverlayElements();
-            }
-        }, true);
     }
 
     // ===== INITIALIZATION =====
