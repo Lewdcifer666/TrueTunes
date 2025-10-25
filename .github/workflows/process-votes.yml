@@ -1,34 +1,49 @@
 name: Process Votes
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
-  workflow_dispatch:  # Manual trigger
+  # Trigger when an issue is opened or labeled
   issues:
     types: [opened, labeled]
+  
+  # Keep manual trigger option
+  workflow_dispatch:
 
 jobs:
   process:
     runs-on: ubuntu-latest
+    
+    # Only run if the issue has the "vote" label
+    if: contains(github.event.issue.labels.*.name, 'vote')
+    
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch full history for proper pulls
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
       
+      - name: Pull latest changes
+        run: |
+          git config user.name "TrueTunes Bot"
+          git config user.email "bot@truetunes.github.io"
+          git pull --rebase origin main || echo "Pull failed, continuing anyway"
+      
       - name: Process votes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/process-votes.js
       
-      - name: Commit changes
+      - name: Commit and push changes
         run: |
-          git config user.name "TrueTunes Bot"
-          git config user.email "bot@truetunes.github.io"
-          git pull --rebase origin main || true
           git add data/*.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update: $(date)" && git push || echo "Push failed, but vote processing succeeded")
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-update: Process vote from issue #${{ github.event.issue.number }}"
+            git push || echo "Push failed, but vote processing succeeded"
+          fi

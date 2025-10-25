@@ -2083,20 +2083,33 @@
             // Debounce the button addition
             artistPageButtonDebounce = setTimeout(() => {
                 // ===== IMPROVED ARTIST PAGE DETECTION =====
+                // PRIMARY METHOD: Check data-test-uri attribute (most reliable!)
+                const section = document.querySelector('section[data-test-uri]');
+                const testUri = section?.getAttribute('data-test-uri');
+
+                // CRITICAL: Reject if it's a playlist page
+                if (testUri && testUri.includes('spotify:playlist')) {
+                    return; // Silent return - this is a playlist, not an artist
+                }
+
+                // Accept if it's explicitly an artist page
+                const isArtistByUri = testUri && testUri.includes('spotify:artist');
+
+                // Fallback detection methods
                 const pathname = window.location.pathname;
                 const isArtistURL = pathname.includes('/artist/');
 
-                // Multiple detection strategies
                 const artistPageIndicators = [
                     document.querySelector('[data-testid="artist-page"]'),
                     document.querySelector('section[aria-label*="Artist"]'),
                     document.querySelector('[data-testid="entity-header"]'),
                     document.querySelector('.main-entityHeader-container'),
-                    // Check for "Popular" section which only exists on artist pages
                     Array.from(document.querySelectorAll('h2')).find(h => h.textContent.trim() === 'Popular')
                 ];
 
-                const onArtistPage = isArtistURL || artistPageIndicators.some(el => el !== null && el !== undefined);
+                const onArtistPage = isArtistByUri ||
+                    isArtistURL ||
+                    artistPageIndicators.some(el => el !== null && el !== undefined);
 
                 if (!onArtistPage) {
                     return; // Silent return
