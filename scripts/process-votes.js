@@ -27,14 +27,30 @@ const MIN_ACCOUNT_AGE_DAYS = 7;
 const ADMIN_ALLOW_DUPLICATE_VOTES = true;
 
 /**
- * Calculate total votes from a reporterVotes Map
+ * Calculate total votes from reporterVotes (Map or Object)
  * Handles both admin (multiple votes) and regular users (single vote)
+ * FIXED: Now handles both Map objects (from live processing) and plain objects (from JSON)
  */
 function calculateTotalVotes(reporterVotes) {
-    let total = 0;
-    for (const count of reporterVotes.values()) {
-        total += count;
+    if (!reporterVotes) {
+        return 0;
     }
+
+    let total = 0;
+
+    // Handle Map objects (from live processing)
+    if (reporterVotes instanceof Map) {
+        for (const count of reporterVotes.values()) {
+            total += count;
+        }
+    }
+    // Handle plain objects (from loaded JSON - Maps become objects when JSON.parse'd)
+    else if (typeof reporterVotes === 'object') {
+        for (const count of Object.values(reporterVotes)) {
+            total += count;
+        }
+    }
+
     return total;
 }
 
@@ -419,6 +435,10 @@ async function main() {
                 const totalVotes = calculateTotalVotes(data.reporterVotes || new Map());
                 existing.votes = totalVotes;
 
+                // CRITICAL: Also update reporterVotes in the existing entry
+                // Convert Map to plain object for JSON serialization
+                existing.reporterVotes = Object.fromEntries(data.reporterVotes || new Map());
+
                 console.log(`\n📝 Updated: ${data.name}`);
                 console.log(`   Unique reporters: ${existing.reporters.length}`);
                 console.log(`   Total votes: ${existing.votes}/${MIN_VOTES}`);
@@ -435,7 +455,7 @@ async function main() {
                     platforms: { [data.platform]: data.id },
                     votes: data.reporters.size,
                     reporters: Array.from(data.reporters),
-                    reporterVotes: data.reporterVotes,
+                    reporterVotes: Object.fromEntries(data.reporterVotes || new Map()),
                     added: new Date().toISOString()
                 };
                 pending.artists.push(newArtist);
@@ -452,8 +472,8 @@ async function main() {
         let newlyFlagged = 0;
 
         pending.artists = pending.artists.filter(artist => {
-            // Calculate total votes using helper function
-            const totalVotes = calculateTotalVotes(artist.reporterVotes || new Map());
+            // FIXED: Calculate total votes using helper function that handles both Maps and Objects
+            const totalVotes = calculateTotalVotes(artist.reporterVotes || {});
 
             if (totalVotes >= MIN_VOTES) {
                 artist.votes = totalVotes; // Update with calculated total

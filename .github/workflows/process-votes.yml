@@ -13,11 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check if issue has vote label
+      - name: Check if should process
         id: check_label
         run: |
-          # Check if the issue has the "vote" label
-          if [[ "${{ contains(github.event.issue.labels.*.name, 'vote') }}" == "true" ]]; then
+          # If manually triggered, always process
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "has_vote_label=true" >> $GITHUB_OUTPUT
+            echo "✅ Manual trigger - will process all open votes"
+          # If triggered by issue, check if it has the "vote" label
+          elif [[ "${{ contains(github.event.issue.labels.*.name, 'vote') }}" == "true" ]]; then
             echo "has_vote_label=true" >> $GITHUB_OUTPUT
             echo "✅ Issue has 'vote' label - will process"
           else
@@ -50,7 +54,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔄 Processing vote from issue #${{ github.event.issue.number }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "🔄 Manual trigger - processing all open vote issues"
+          else
+            echo "🔄 Processing vote from issue #${{ github.event.issue.number }}"
+          fi
           node scripts/process-votes.js
       
       - name: Commit and push changes
@@ -62,9 +70,17 @@ jobs:
           else
             # Check if any artist was flagged
             if grep -q "FLAGGED" <<< "$(git diff --cached)"; then
-              git commit -m "🚩 Auto-flagged: Artist reached 10 votes (triggered by issue #${{ github.event.issue.number }})"
+              if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                git commit -m "🚩 Auto-flagged: Artist reached 10 votes (manual trigger)"
+              else
+                git commit -m "🚩 Auto-flagged: Artist reached 10 votes (triggered by issue #${{ github.event.issue.number }})"
+              fi
             else
-              git commit -m "📝 Auto-update: Added vote from issue #${{ github.event.issue.number }})"
+              if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                git commit -m "📝 Auto-update: Processed votes (manual trigger)"
+              else
+                git commit -m "📝 Auto-update: Added vote from issue #${{ github.event.issue.number }})"
+              fi
             fi
             
             # Push with retry logic
@@ -85,6 +101,10 @@ jobs:
         run: |
           echo "=========================================="
           echo "Vote Processing Complete!"
-          echo "Issue: #${{ github.event.issue.number }}"
-          echo "Reporter: ${{ github.event.issue.user.login }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Trigger: Manual"
+          else
+            echo "Issue: #${{ github.event.issue.number }}"
+            echo "Reporter: ${{ github.event.issue.user.login }}"
+          fi
           echo "=========================================="
