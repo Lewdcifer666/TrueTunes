@@ -880,15 +880,18 @@
             const totalVotes = group.issueNumbers.length;
             const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
             const isOpen = group.states.has('open');
-            const issueNumbersStr = group.issueNumbers.sort((a, b) => a - b).map(n => `#${n}`).join(', ');
-            const firstIssue = group.issueNumbers[0];
+            const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
+            const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
+                `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
+                            target="_blank" 
+                            style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
+                            onclick="event.stopPropagation();"
+                            onmouseover="this.style.textDecoration='underline';"
+                            onmouseout="this.style.textDecoration='none';">#${n}</a>`
+            ).join(', ');
 
             return `
-                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${firstIssue}" 
-                       target="_blank"
-                       style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : '#666'};"
-                       onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
-                       onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                    <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#666')};">
                         
                         <!-- Header Row with Reporters and Status -->
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
@@ -912,14 +915,21 @@
                                 <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(group.latestTime)}</div>
                             </div>
                             
-                            <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
+                            <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                                 ${isOpen ? 'open' : 'closed'}
                             </span>
                         </div>
 
-                        <!-- Artist Name -->
-                        <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${group.artistName}
+                        <!-- Artist Name (Clickable) -->
+                        <div style="margin-bottom: 6px;">
+                            <a href="https://open.spotify.com/artist/${group.artistId}" 
+                               target="_blank"
+                               style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
+                               onclick="event.stopPropagation();"
+                               onmouseover="this.style.color='#7e22ce';"
+                               onmouseout="this.style.color='white';">
+                                ${group.artistName}
+                            </a>
                         </div>
                         
                         <!-- Platform, Issues, and Vote Count -->
@@ -927,7 +937,7 @@
                             <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
                                 <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
                                 <span style="flex-shrink: 0;">•</span>
-                                <span style="color: #7e22ce; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueNumbersStr}</span>
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
                                 ${group.comments > 0 ? `
                                     <span style="flex-shrink: 0;">•</span>
                                     <span style="flex-shrink: 0;">💬 ${group.comments}</span>
@@ -938,7 +948,11 @@
                                 <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
                                     ${totalVotes}/${MIN_VOTES} Votes
                                 </span>
-                            ` : ''}
+                            ` : (isFlagged ? `
+                                <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                    Flagged
+                                </span>
+                            ` : '')}
                         </div>
                         
                         <!-- Progress Bar -->
@@ -947,7 +961,7 @@
                                 <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
                             </div>
                         ` : ''}
-                    </a>
+                    </div>
                 `;
         }).join('') : `
                     <div style="text-align: center; color: #999; padding: 60px 20px;">
