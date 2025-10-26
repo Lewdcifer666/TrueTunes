@@ -4,8 +4,11 @@ on:
   issues:
     types: [opened, labeled]
   workflow_dispatch:
+  schedule:
+    # Run every 15 minutes as a backup to catch any missed votes
+    - cron: '*/15 * * * *'
 
-# CRITICAL: Prevent concurrent runs that cause merge conflicts
+# CRITICAL: Only allow ONE workflow to run at a time
 concurrency:
   group: process-votes
   cancel-in-progress: false
@@ -18,12 +21,14 @@ jobs:
       - name: Check if should process
         id: check_label
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # Manual trigger or scheduled - always process
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || [[ "${{ github.event_name }}" == "schedule" ]]; then
             echo "has_vote_label=true" >> $GITHUB_OUTPUT
-            echo "✅ Manual trigger - will process all open votes"
+            echo "✅ Manual/Scheduled trigger - will process all open votes"
+          # Issue trigger - check label
           elif [[ "${{ contains(github.event.issue.labels.*.name, 'vote') }}" == "true" ]]; then
             echo "has_vote_label=true" >> $GITHUB_OUTPUT
-            echo "✅ Issue has 'vote' label - will process"
+            echo "✅ Issue #${{ github.event.issue.number }} has 'vote' label - will process ALL open votes"
           else
             echo "has_vote_label=false" >> $GITHUB_OUTPUT
             echo "⚠️ Issue does not have 'vote' label - skipping"
@@ -42,108 +47,90 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Pull latest changes with retry
+      - name: Configure Git
         if: steps.check_label.outputs.has_vote_label == 'true'
         run: |
           git config user.name "TrueTunes Bot"
           git config user.email "bot@truetunes.github.io"
-          
-          for i in {1..5}; do
-            echo "📥 Pull attempt $i/5"
-            if git pull --rebase origin main; then
-              echo "✅ Pull successful"
-              break
-            else
-              if [ $i -eq 5 ]; then
-                echo "❌ Pull failed after 5 attempts"
-                exit 1
-              fi
-              echo "⚠️ Pull failed, waiting before retry..."
-              sleep $((i * 3))
-            fi
-          done
       
-      - name: Process votes and check thresholds
+      - name: Pull latest changes
+        if: steps.check_label.outputs.has_vote_label == 'true'
+        run: |
+          echo "📥 Pulling latest changes..."
+          git pull --rebase origin main || {
+            echo "❌ Pull failed"
+            exit 1
+          }
+      
+      - name: Process ALL open votes
         if: steps.check_label.outputs.has_vote_label == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "🔄 Manual trigger - processing all open vote issues"
-          else
-            echo "🔄 Processing vote from issue #${{ github.event.issue.number }}"
-          fi
+          echo "🔄 Processing ALL open vote issues (batch mode)"
+          echo "   This run will handle ALL pending votes, not just the trigger"
           node scripts/process-votes.js
       
-      - name: Commit and push changes with retry
+      - name: Commit and push changes
         if: steps.check_label.outputs.has_vote_label == 'true'
         run: |
           git add data/*.json
           
+          # Check if there are changes
           if git diff --staged --quiet; then
-            echo "✅ No changes to commit (vote added to pending)"
+            echo "✅ No changes to commit"
             exit 0
           fi
           
+          # Count changes
+          FLAGGED_COUNT=$(git diff --cached data/flagged.json | grep -c '"name":' || echo 0)
+          PENDING_COUNT=$(git diff --cached data/pending.json | grep -c '"name":' || echo 0)
+          
           # Determine commit message
           if grep -q "FLAGGED" <<< "$(git diff --cached)"; then
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              COMMIT_MSG="🚩 Auto-flagged: Artist reached 10 votes (manual trigger)"
-            else
-              COMMIT_MSG="🚩 Auto-flagged: Artist reached 10 votes (issue #${{ github.event.issue.number }})"
-            fi
+            COMMIT_MSG="🚩 Auto-flagged: ${FLAGGED_COUNT} artist(s) reached threshold"
           else
-            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-              COMMIT_MSG="📝 Auto-update: Processed votes (manual trigger)"
-            else
-              COMMIT_MSG="📝 Auto-update: Added vote from issue #${{ github.event.issue.number }}"
-            fi
+            COMMIT_MSG="📝 Auto-update: Processed votes (${PENDING_COUNT} pending)"
           fi
           
+          echo "Committing: $COMMIT_MSG"
           git commit -m "$COMMIT_MSG"
           
-          # Push with smart retry and conflict resolution
-          for i in {1..10}; do
-            echo "📤 Push attempt $i/10"
+          # Push with retry
+          for i in {1..5}; do
+            echo "📤 Push attempt $i/5"
             
             if git push origin main; then
               echo "✅ Changes pushed successfully"
               break
             else
-              if [ $i -eq 10 ]; then
-                echo "❌ Push failed after 10 attempts"
+              if [ $i -eq 5 ]; then
+                echo "❌ Push failed after 5 attempts"
                 exit 1
               fi
               
-              echo "⚠️ Push failed (attempt $i/10), pulling and retrying..."
+              echo "⚠️ Push failed, pulling and retrying..."
               
-              # Reset to before commit
+              # Reset and pull
               git reset --soft HEAD~1
-              
-              # Pull latest
-              if ! git pull --rebase origin main; then
-                echo "❌ Pull failed, trying merge strategy..."
+              git pull --rebase origin main || {
                 git rebase --abort 2>/dev/null || true
-                git pull --no-rebase origin main || {
-                  echo "❌ Merge failed completely"
-                  exit 1
-                }
-              fi
+                git pull --no-rebase origin main
+              }
               
-              # Re-process votes with latest data
-              echo "🔄 Re-processing votes with latest data..."
+              # Re-process with latest data
+              echo "🔄 Re-processing with latest data..."
               node scripts/process-votes.js
               
-              # Re-add and commit
+              # Re-commit
               git add data/*.json
               if ! git diff --staged --quiet; then
                 git commit -m "$COMMIT_MSG"
               else
-                echo "✅ No changes after re-processing (already applied)"
+                echo "✅ No changes after re-processing"
                 break
               fi
               
-              # Wait before retry (exponential backoff)
               sleep $((i * 2))
             fi
           done
@@ -152,11 +139,11 @@ jobs:
         if: steps.check_label.outputs.has_vote_label == 'true'
         run: |
           echo "=========================================="
-          echo "Vote Processing Complete!"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "Trigger: Manual"
-          else
+          echo "✅ Vote Processing Complete!"
+          echo "=========================================="
+          echo "Trigger: ${{ github.event_name }}"
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
             echo "Issue: #${{ github.event.issue.number }}"
-            echo "Reporter: ${{ github.event.issue.user.login }}"
+            echo "Note: Processed ALL open votes, not just this issue"
           fi
           echo "=========================================="
