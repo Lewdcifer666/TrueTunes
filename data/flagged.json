@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-26T12:50:31.070Z",
-  "updated": "2025-10-26T12:50:31.070Z",
-  "total": 7,
+  "version": "2025-10-26T13:55:23.367Z",
+  "updated": "2025-10-26T13:55:23.367Z",
+  "total": 8,
   "artists": [
     {
       "id": "test1",
@@ -85,7 +85,9 @@
         "spotify": "2bRCIbSmgAXitACxT5ZpQy"
       },
       "votes": 11,
-      "reporters": ["Lewdcifer666"],
+      "reporters": [
+        "Lewdcifer666"
+      ],
       "reporterVotes": {
         "Lewdcifer666": 11
       },
