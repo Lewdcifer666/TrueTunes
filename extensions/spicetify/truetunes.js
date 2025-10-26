@@ -999,6 +999,73 @@
     `;
     }
 
+    function createFlaggedTab() {
+        const totalFlagged = flaggedArtists.size;
+        const flaggedArray = Array.from(flaggedArtists.values())
+            .sort((a, b) => new Date(b.added) - new Date(a.added));
+
+        const [searchResults, setSearchResults] = React.useState(null);
+        const [searchQuery, setSearchQuery] = React.useState('');
+
+        const displayedArtists = searchResults !== null ? searchResults : flaggedArray;
+
+        return `
+        <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0;">
+                <h3 style="font-size: 18px; font-weight: 600;">🚩 Flagged Artists</h3>
+                <span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: 700;">
+                    ${totalFlagged} Total
+                </span>
+            </div>
+
+            <!-- Search Bar -->
+            <div style="margin-bottom: 20px; flex-shrink: 0;">
+                <input 
+                    type="text" 
+                    id="flagged-search-input"
+                    placeholder="Search flagged artists..."
+                    style="width: 100%; padding: 12px 16px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: white; font-size: 14px; outline: none; transition: all 0.2s;"
+                    onfocus="this.style.borderColor='#7e22ce'; this.style.background='rgba(126, 34, 206, 0.1)';"
+                    onblur="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.background='rgba(255, 255, 255, 0.1)';"
+                >
+            </div>
+
+            <!-- Results Container -->
+            <div id="flagged-artists-list" style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                ${displayedArtists.length > 0 ? displayedArtists.map(artist => `
+                    <div class="flagged-artist-item" data-artist-id="${artist.platforms.spotify}" style="background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border-left: 3px solid #ef4444;"
+                         onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
+                         onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                        <div style="display: flex; justify-content: between; align-items: center;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${artist.name}
+                                </div>
+                                <div style="font-size: 11px; color: #999;">
+                                    <span style="color: #ef4444; font-weight: 600;">${artist.votes} votes</span>
+                                    <span style="margin: 0 6px;">•</span>
+                                    <span>Flagged ${new Date(artist.added).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                            </div>
+                            <div style="margin-left: 12px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : `
+                    <div style="text-align: center; color: #999; padding: 60px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                        <p>No artists found</p>
+                    </div>
+                `}
+            </div>
+        </div>
+    `;
+    }
+
     function createHistoryTab() {
         if (!settings.githubLinked) {
             return `
@@ -1125,27 +1192,41 @@
     }
 
     function renderCompactHistoryItem(vote, state, isLast) {
-        return `
-            <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
-               target="_blank"
-               style="display: block; padding: 12px 16px; text-decoration: none; color: white; transition: all 0.2s; ${!isLast ? 'border-bottom: 1px solid rgba(255, 255, 255, 0.1);' : ''}"
-               onmouseover="this.style.background='rgba(255, 255, 255, 0.05)';"
-               onmouseout="this.style.background='transparent';">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="flex: 1; min-width: 0; margin-right: 12px;">
-                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
-                        <div style="font-size: 11px; color: #999;">
-                            <span style="color: ${state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">Issue #${vote.issueNumber}</span>
-                            <span style="margin: 0 6px;">•</span>
-                            <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        </div>
-                    </div>
-                    <span style="background: ${state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${state === 'open' ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap;">
-                        ${state}
-                    </span>
-                </div>
-            </a>
+        // Calculate vote progress for open issues only
+        let voteProgressHTML = '';
+        if (state === 'open') {
+            const pending = window.trueTunesPending?.get(vote.artistId);
+            const currentVotes = pending ? pending.votes : 1;
+            const MIN_VOTES = 10;
+
+            voteProgressHTML = `
+            <span style="margin: 0 6px;">•</span>
+            <span style="color: #7e22ce; font-weight: 600;">${currentVotes}/${MIN_VOTES} votes</span>
         `;
+        }
+
+        return `
+        <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${vote.issueNumber}" 
+           target="_blank"
+           style="display: block; padding: 12px 16px; text-decoration: none; color: white; transition: all 0.2s; ${!isLast ? 'border-bottom: 1px solid rgba(255, 255, 255, 0.1);' : ''}"
+           onmouseover="this.style.background='rgba(255, 255, 255, 0.05)';"
+           onmouseout="this.style.background='transparent';">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1; min-width: 0; margin-right: 12px;">
+                    <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${vote.artistName}</div>
+                    <div style="font-size: 11px; color: #999;">
+                        <span style="color: ${state === 'open' ? '#22c55e' : '#999'}; font-weight: 600;">Issue #${vote.issueNumber}</span>
+                        <span style="margin: 0 6px;">•</span>
+                        <span>${new Date(vote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        ${voteProgressHTML}
+                    </div>
+                </div>
+                <span style="background: ${state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${state === 'open' ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap;">
+                    ${state}
+                </span>
+            </div>
+        </a>
+    `;
     }
 
     function createSettingsTab() {
@@ -1227,6 +1308,7 @@
         const tabs = {
             account: createAccountTab(),
             community: createCommunityTab(),
+            flagged: createFlaggedTab(),
             history: createHistoryTab(),
             settings: createSettingsTab()
         };
@@ -1257,6 +1339,23 @@
             panel.style.opacity = '1';
             attachTabEventListeners();
         }, 150);
+    }
+
+    function attachFlaggedArtistClicks() {
+        const artistItems = document.querySelectorAll('.flagged-artist-item');
+        artistItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const artistId = item.dataset.artistId;
+                if (artistId) {
+                    // Close the modal
+                    const modal = document.getElementById('truetunes-modal');
+                    if (modal) modal.remove();
+
+                    // Navigate to artist page
+                    Spicetify.Platform.History.push(`/artist/${artistId}`);
+                }
+            });
+        });
     }
 
     function attachTabEventListeners() {
@@ -1341,6 +1440,89 @@
                 await verifyRecentVotes();
                 renderTrueTunesPanel();
             });
+        } else if (currentTab === 'flagged') {
+            // Search functionality
+            const searchInput = document.getElementById('flagged-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    const listContainer = document.getElementById('flagged-artists-list');
+
+                    if (!query) {
+                        // Show all
+                        const allArtists = Array.from(flaggedArtists.values())
+                            .sort((a, b) => new Date(b.added) - new Date(a.added));
+
+                        listContainer.innerHTML = allArtists.map(artist => `
+                            <div class="flagged-artist-item" data-artist-id="${artist.platforms.spotify}" style="background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border-left: 3px solid #ef4444;"
+                                 onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
+                                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            ${artist.name}
+                                        </div>
+                                        <div style="font-size: 11px; color: #999;">
+                                            <span style="color: #ef4444; font-weight: 600;">${artist.votes} votes</span>
+                                            <span style="margin: 0 6px;">•</span>
+                                            <span>Flagged ${new Date(artist.added).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                        </div>
+                                    </div>
+                                    <div style="margin-left: 12px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 18l6-6-6-6"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                        attachFlaggedArtistClicks();
+                        return;
+                    }
+
+                    // Filter results
+                    const filtered = Array.from(flaggedArtists.values())
+                        .filter(a => a.name.toLowerCase().includes(query))
+                        .sort((a, b) => new Date(b.added) - new Date(a.added));
+
+                    if (filtered.length > 0) {
+                        listContainer.innerHTML = filtered.map(artist => `
+                            <div class="flagged-artist-item" data-artist-id="${artist.platforms.spotify}" style="background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border-left: 3px solid #ef4444;"
+                                 onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
+                                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            ${artist.name}
+                                        </div>
+                                        <div style="font-size: 11px; color: #999;">
+                                            <span style="color: #ef4444; font-weight: 600;">${artist.votes} votes</span>
+                                            <span style="margin: 0 6px;">•</span>
+                                            <span>Flagged ${new Date(artist.added).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                        </div>
+                                    </div>
+                                    <div style="margin-left: 12px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M9 18l6-6-6-6"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        listContainer.innerHTML = `
+                            <div style="text-align: center; color: #999; padding: 60px 20px;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                                <p>No artists found matching "${query}"</p>
+                            </div>
+                        `;
+                    }
+                    attachFlaggedArtistClicks();
+                });
+            }
+
+            // Attach click handlers
+            attachFlaggedArtistClicks();
         } else if (currentTab === 'history') {
             const toggleBtn = document.getElementById('toggle-history-view');
             if (toggleBtn) {
@@ -1454,6 +1636,7 @@
         const tabs = [
             { id: 'account', icon: '👤', label: 'Account' },
             { id: 'community', icon: '🌍', label: 'Community' },
+            { id: 'flagged', icon: '🚩', label: 'Flagged' },
             { id: 'history', icon: '📜', label: 'History' },
             { id: 'settings', icon: '⚙️', label: 'Settings' }
         ];
