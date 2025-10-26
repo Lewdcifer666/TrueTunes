@@ -1004,11 +1004,6 @@
         const flaggedArray = Array.from(flaggedArtists.values())
             .sort((a, b) => new Date(b.added) - new Date(a.added));
 
-        const [searchResults, setSearchResults] = React.useState(null);
-        const [searchQuery, setSearchQuery] = React.useState('');
-
-        const displayedArtists = searchResults !== null ? searchResults : flaggedArray;
-
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
             <!-- Header -->
@@ -1033,11 +1028,11 @@
 
             <!-- Results Container -->
             <div id="flagged-artists-list" style="flex: 1; overflow-y: auto; padding-right: 8px;">
-                ${displayedArtists.length > 0 ? displayedArtists.map(artist => `
+                ${flaggedArray.length > 0 ? flaggedArray.map(artist => `
                     <div class="flagged-artist-item" data-artist-id="${artist.platforms.spotify}" style="background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; border-left: 3px solid #ef4444;"
                          onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
                          onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
-                        <div style="display: flex; justify-content: between; align-items: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1; min-width: 0;">
                                 <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     ${artist.name}
