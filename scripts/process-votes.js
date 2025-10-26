@@ -415,8 +415,19 @@ async function main() {
             }
         }
 
+        // Track which issues we've processed to prevent duplicates
+        const processedIssues = new Set();
+
         for (const issue of issues) {
             console.log(`\n${'─'.repeat(60)}`);
+
+            // Skip if already processed in this run
+            if (processedIssues.has(issue.number)) {
+                console.log(`⏭️  Skipping #${issue.number}: Already processed in this run`);
+                continue;
+            }
+            processedIssues.add(issue.number);
+
             const vote = parseVote(issue);
 
             if (!vote) {
@@ -537,7 +548,7 @@ async function main() {
                 data.reporters.forEach(reporter => existingReporters.add(reporter));
                 existing.reporters = Array.from(existingReporters);
 
-                // CRITICAL FIX: Merge reporterVotes instead of replacing
+                // CRITICAL FIX: Merge reporterVotes, but cap at MAX per user
                 const mergedVotes = new Map();
 
                 // Load existing votes from pending.json
@@ -547,11 +558,18 @@ async function main() {
                     });
                 }
 
-                // Add new votes from current batch
+                // Add new votes from current batch (but cap at MAX_VOTES_PER_USER)
                 if (data.reporterVotes) {
                     data.reporterVotes.forEach((count, reporter) => {
                         const currentCount = mergedVotes.get(reporter) || 0;
-                        mergedVotes.set(reporter, currentCount + count);
+                        const newTotal = currentCount + count;
+
+                        // Cap at MAX_VOTES_PER_USER (or unlimited for admins)
+                        if (ADMIN_USERS.includes(reporter)) {
+                            mergedVotes.set(reporter, newTotal);
+                        } else {
+                            mergedVotes.set(reporter, Math.min(newTotal, MAX_VOTES_PER_USER));
+                        }
                     });
                 }
 
