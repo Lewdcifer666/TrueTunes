@@ -329,6 +329,13 @@ async function main() {
         const pending = JSON.parse(fs.readFileSync('data/pending.json', 'utf8'));
         const stats = JSON.parse(fs.readFileSync('data/stats.json', 'utf8'));
 
+        // CRITICAL: Declare these arrays BEFORE historical check uses them
+        const artistVotes = new Map();
+        const invalidIssues = [];
+        const duplicateIssues = [];
+        const thresholdIssues = [];
+        const userVoteCount = new Map();
+
         // Build a complete map of ALL historical votes (including recently closed)
         const allHistoricalIssues = [...openIssues, ...recentlyClosed];
         const historicalVotesByArtist = new Map();
@@ -407,12 +414,6 @@ async function main() {
                 }
             }
         }
-
-        const artistVotes = new Map();
-        const invalidIssues = [];
-        const duplicateIssues = [];
-        const thresholdIssues = [];
-        const userVoteCount = new Map();
 
         for (const issue of issues) {
             console.log(`\n${'─'.repeat(60)}`);
