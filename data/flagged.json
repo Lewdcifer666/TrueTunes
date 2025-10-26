@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-26T13:55:23.367Z",
-  "updated": "2025-10-26T13:55:23.367Z",
-  "total": 8,
+  "version": "2025-10-26T16:46:27.650Z",
+  "updated": "2025-10-26T16:46:27.650Z",
+  "total": 10,
   "artists": [
     {
       "id": "test1",
@@ -92,6 +92,36 @@
         "Lewdcifer666": 11
       },
       "added": "2025-10-26T12:00:00.000Z"
+    },
+    {
+      "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
+      "name": "Bleeding Verse",
+      "platforms": {
+        "spotify": "6CrsGj3Zj4gIM3rQSU7DeW"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-26T16:42:26.726Z"
+    },
+    {
+      "id": "spotify:2GRtyAXWUiisGYub5SGMrb",
+      "name": "The Velvet Sundown",
+      "platforms": {
+        "spotify": "2GRtyAXWUiisGYub5SGMrb"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-19T23:10:59.777Z",
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      }
     }
   ]
 }
