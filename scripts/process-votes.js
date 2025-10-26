@@ -517,6 +517,16 @@ async function main() {
         console.log('='.repeat(60));
 
         for (const [key, data] of artistVotes) {
+            // CRITICAL FIX: Skip artists already flagged by historical check
+            const alreadyFlagged = flagged.artists.some(a =>
+                a.platforms[data.platform] === data.id
+            );
+
+            if (alreadyFlagged) {
+                console.log(`\n⏭️  Skipped: ${data.name} (already flagged)`);
+                continue;
+            }
+
             const existing = pending.artists.find(a =>
                 a.platforms[data.platform] === data.id
             );
