@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-26T13:55:23.367Z",
-  "updated": "2025-10-26T13:55:23.367Z",
-  "total": 8,
+  "version": "2025-10-26T16:42:26.728Z",
+  "updated": "2025-10-26T16:42:26.728Z",
+  "total": 9,
   "artists": [
     {
       "id": "test1",
@@ -92,6 +92,21 @@
         "Lewdcifer666": 11
       },
       "added": "2025-10-26T12:00:00.000Z"
+    },
+    {
+      "id": "spotify:6CrsGj3Zj4gIM3rQSU7DeW",
+      "name": "Bleeding Verse",
+      "platforms": {
+        "spotify": "6CrsGj3Zj4gIM3rQSU7DeW"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-26T16:42:26.726Z"
     }
   ]
 }
