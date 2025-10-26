@@ -772,7 +772,6 @@
     `;
     }
 
-    // FIXED: Community tab now shows progress bars
     function createCommunityTab() {
         if (!settings.githubLinked) {
             return `
@@ -803,34 +802,48 @@
 
         const MIN_VOTES = 10;
 
-        // ===== NEW: Calculate historical vote progression =====
-        // Group issues by artist ID and assign cumulative vote numbers
-        const artistIssueGroups = new Map();
+        // ===== GROUP ACTIVITIES BY ARTIST =====
+        const artistGroups = new Map();
 
-        // First, group all issues by artist ID
         communityFeed.recentActivity.forEach(activity => {
             const normalizedId = activity.artistId?.replace(/^spotify:/, '');
             if (!normalizedId) return;
 
-            if (!artistIssueGroups.has(normalizedId)) {
-                artistIssueGroups.set(normalizedId, []);
+            if (!artistGroups.has(normalizedId)) {
+                artistGroups.set(normalizedId, {
+                    artistId: normalizedId,
+                    artistName: activity.artistName,
+                    platform: activity.platform,
+                    reporters: [],
+                    reporterAvatars: new Map(),
+                    issueNumbers: [],
+                    states: new Set(),
+                    latestTime: activity.createdAt,
+                    comments: 0
+                });
             }
-            artistIssueGroups.get(normalizedId).push(activity);
+
+            const group = artistGroups.get(normalizedId);
+
+            // Add reporter if not already added
+            if (!group.reporters.includes(activity.reporter)) {
+                group.reporters.push(activity.reporter);
+                group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
+            }
+
+            group.issueNumbers.push(activity.issueNumber);
+            group.states.add(activity.state);
+            group.comments += activity.comments;
+
+            // Keep latest time
+            if (new Date(activity.createdAt) > new Date(group.latestTime)) {
+                group.latestTime = activity.createdAt;
+            }
         });
 
-        // For each artist group, sort by creation date and assign vote numbers
-        const issueVoteCounts = new Map(); // Map of issueNumber -> voteCount
-
-        artistIssueGroups.forEach((issues, artistId) => {
-            // Sort by creation date (oldest first)
-            issues.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-            // Assign cumulative vote numbers
-            issues.forEach((issue, index) => {
-                issueVoteCounts.set(issue.issueNumber, index + 1);
-            });
-        });
-        // ===== END NEW CODE =====
+        // Sort by latest activity
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
 
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
@@ -849,11 +862,11 @@
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; flex-shrink: 0;">
                 <div style="background: rgba(126, 34, 206, 0.1); border: 1px solid rgba(126, 34, 206, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
                     <div style="font-size: 20px; font-weight: 700; color: #7e22ce;">${communityFeed.recentActivity.length}</div>
-                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Recent Votes</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Total Reports</div>
                 </div>
                 <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
-                    <div style="font-size: 20px; font-weight: 700; color: #22c55e;">${communityFeed.recentActivity.filter(a => a.state === 'open').length}</div>
-                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Open Issues</div>
+                    <div style="font-size: 20px; font-weight: 700; color: #22c55e;">${groupedActivities.filter(g => g.states.has('open')).length}</div>
+                    <div style="font-size: 11px; color: #999; margin-top: 2px;">Active Artists</div>
                 </div>
                 <div style="background: rgba(219, 39, 119, 0.1); border: 1px solid rgba(219, 39, 119, 0.3); padding: 12px; border-radius: 10px; text-align: center;">
                     <div style="font-size: 20px; font-weight: 700; color: #db2777;">${new Set(communityFeed.recentActivity.map(a => a.reporter)).size}</div>
@@ -861,59 +874,79 @@
                 </div>
             </div>
 
-            <!-- Activity Feed with Historical Progression -->
+            <!-- Grouped Activity Feed -->
             <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
-                ${communityFeed.recentActivity.length > 0 ? communityFeed.recentActivity.map(activity => {
-            // Get the HISTORICAL vote count for this specific issue
-            const historicalVoteCount = issueVoteCounts.get(activity.issueNumber) || 1;
-            const progressPercent = (historicalVoteCount / MIN_VOTES) * 100;
+                ${groupedActivities.length > 0 ? groupedActivities.map(group => {
+            const totalVotes = group.issueNumbers.length;
+            const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
+            const isOpen = group.states.has('open');
+            const issueNumbersStr = group.issueNumbers.sort((a, b) => a - b).map(n => `#${n}`).join(', ');
+            const firstIssue = group.issueNumbers[0];
 
             return `
-                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${activity.issueNumber}" 
+                    <a href="https://github.com/Lewdcifer666/TrueTunes/issues/${firstIssue}" 
                        target="_blank"
-                       style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid ${activity.state === 'open' ? '#22c55e' : '#666'};"
+                       style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; text-decoration: none; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : '#666'};"
                        onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.transform='translateX(4px)';"
                        onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
                         
-                        <!-- Header Row -->
+                        <!-- Header Row with Reporters and Status -->
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <img src="${activity.reporterAvatar}" 
-                                 style="width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);">
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; font-size: 13px; color: #7e22ce;">@${activity.reporter}</div>
-                                <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(activity.createdAt)}</div>
-                            </div>
-                            <span style="background: ${activity.state === 'open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${activity.state === 'open' ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700;">
-                                ${activity.state}
-                            </span>
-                        </div>
-
-                        <!-- Artist Info -->
-                        <div style="margin-left: 38px;">
-                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ${activity.artistName}
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #999; margin-bottom: 8px;">
-                                <span>🎵 ${activity.platform}</span>
-                                <span>•</span>
-                                <span style="color: #7e22ce; font-weight: 600;">Issue #${activity.issueNumber}</span>
-                                ${activity.comments > 0 ? `
-                                    <span>•</span>
-                                    <span>💬 ${activity.comments}</span>
-                                ` : ''}
-                                ${activity.state === 'open' ? `
-                                    <span>•</span>
-                                    <span style="color: #7e22ce; font-weight: 600;">${historicalVoteCount}/${MIN_VOTES} votes</span>
+                            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                                ${group.reporters.slice(0, 3).map(reporter => `
+                                    <img src="${group.reporterAvatars.get(reporter)}" 
+                                         style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);"
+                                         title="@${reporter}">
+                                `).join('')}
+                                ${group.reporters.length > 3 ? `
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid rgba(126, 34, 206, 0.5);">
+                                        +${group.reporters.length - 3}
+                                    </div>
                                 ` : ''}
                             </div>
                             
-                            <!-- Historical Progress Bar -->
-                            ${activity.state === 'open' ? `
-                                <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
-                                    <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 600; font-size: 12px; color: #7e22ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${group.reporters.map(r => `@${r}`).join(', ')}
                                 </div>
+                                <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(group.latestTime)}</div>
+                            </div>
+                            
+                            <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
+                                ${isOpen ? 'open' : 'closed'}
+                            </span>
+                        </div>
+
+                        <!-- Artist Name -->
+                        <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${group.artistName}
+                        </div>
+                        
+                        <!-- Platform, Issues, and Vote Count -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
+                                <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
+                                <span style="flex-shrink: 0;">•</span>
+                                <span style="color: #7e22ce; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueNumbersStr}</span>
+                                ${group.comments > 0 ? `
+                                    <span style="flex-shrink: 0;">•</span>
+                                    <span style="flex-shrink: 0;">💬 ${group.comments}</span>
+                                ` : ''}
+                            </div>
+                            
+                            ${isOpen ? `
+                                <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                    ${totalVotes}/${MIN_VOTES} Votes
+                                </span>
                             ` : ''}
                         </div>
+                        
+                        <!-- Progress Bar -->
+                        ${isOpen ? `
+                            <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                            </div>
+                        ` : ''}
                     </a>
                 `;
         }).join('') : `
@@ -934,8 +967,6 @@
         </div>
     `;
     }
-
-
 
     function createStatsTab() {
         if (!settings.githubLinked) {
