@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-26T16:42:26.728Z",
-  "updated": "2025-10-26T16:42:26.728Z",
+  "version": "2025-10-26T16:45:10.949Z",
+  "updated": "2025-10-26T16:45:10.949Z",
   "artists": [
     {
       "id": "spotify:2GRtyAXWUiisGYub5SGMrb",
@@ -8,11 +8,14 @@
       "platforms": {
         "spotify": "2GRtyAXWUiisGYub5SGMrb"
       },
-      "votes": 1,
+      "votes": 2,
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-19T23:10:59.777Z"
+      "added": "2025-10-19T23:10:59.777Z",
+      "reporterVotes": {
+        "Lewdcifer666": 2
+      }
     },
     {
       "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
@@ -20,13 +23,13 @@
       "platforms": {
         "spotify": "4wVSmEjrheqRkOI4po2hhj"
       },
-      "votes": 2,
+      "votes": 3,
       "reporters": [
         "Lewdcifer666"
       ],
       "added": "2025-10-23T21:12:49.888Z",
       "reporterVotes": {
-        "Lewdcifer666": 2
+        "Lewdcifer666": 3
       }
     },
     {
@@ -35,13 +38,13 @@
       "platforms": {
         "spotify": "6ydIK3fZelJNbF5KwgZUga"
       },
-      "votes": 2,
+      "votes": 3,
       "reporters": [
         "Lewdcifer666"
       ],
       "added": "2025-10-24T19:19:36.320Z",
       "reporterVotes": {
-        "Lewdcifer666": 2
+        "Lewdcifer666": 3
       }
     },
     {
@@ -50,13 +53,13 @@
       "platforms": {
         "spotify": "1MSx7eCIGLByF6My5VMgrH"
       },
-      "votes": 2,
+      "votes": 3,
       "reporters": [
         "Lewdcifer666"
       ],
       "added": "2025-10-24T19:34:24.898Z",
       "reporterVotes": {
-        "Lewdcifer666": 2
+        "Lewdcifer666": 3
       }
     }
   ]
