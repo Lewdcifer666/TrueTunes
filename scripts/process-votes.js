@@ -536,13 +536,28 @@ async function main() {
                 data.reporters.forEach(reporter => existingReporters.add(reporter));
                 existing.reporters = Array.from(existingReporters);
 
-                // Use helper function to calculate total votes
-                const totalVotes = calculateTotalVotes(data.reporterVotes || new Map());
-                existing.votes = totalVotes;
+                // CRITICAL FIX: Merge reporterVotes instead of replacing
+                const mergedVotes = new Map();
 
-                // CRITICAL: Also update reporterVotes in the existing entry
-                // Convert Map to plain object for JSON serialization
-                existing.reporterVotes = Object.fromEntries(data.reporterVotes || new Map());
+                // Load existing votes from pending.json
+                if (existing.reporterVotes) {
+                    Object.entries(existing.reporterVotes).forEach(([reporter, count]) => {
+                        mergedVotes.set(reporter, count);
+                    });
+                }
+
+                // Add new votes from current batch
+                if (data.reporterVotes) {
+                    data.reporterVotes.forEach((count, reporter) => {
+                        const currentCount = mergedVotes.get(reporter) || 0;
+                        mergedVotes.set(reporter, currentCount + count);
+                    });
+                }
+
+                // Calculate total and update
+                const totalVotes = calculateTotalVotes(mergedVotes);
+                existing.votes = totalVotes;
+                existing.reporterVotes = Object.fromEntries(mergedVotes);
 
                 console.log(`\n📝 Updated: ${data.name}`);
                 console.log(`   Unique reporters: ${existing.reporters.length}`);
