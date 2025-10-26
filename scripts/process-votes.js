@@ -544,11 +544,40 @@ async function main() {
             );
 
             if (existing) {
+                // FIXED: Track which issues have been counted to prevent duplicate counting
+                const existingIssues = new Set(existing.issueNumbers || []);
+                const newIssues = data.issueNumbers.filter(num => !existingIssues.has(num));
+
+                if (newIssues.length === 0) {
+                    console.log(`\n⏭️  Skipped: ${data.name} (all issues already counted)`);
+                    continue;
+                }
+
+                console.log(`\n📝 Updating: ${data.name} (${newIssues.length} new issues)`);
+
+                // Only count votes from NEW issues
                 const existingReporters = new Set(existing.reporters || []);
-                data.reporters.forEach(reporter => existingReporters.add(reporter));
+
+                // Find reporters from new issues only
+                const newReporters = new Set();
+                for (const issueNumber of newIssues) {
+                    const issue = issues.find(i => i.number === issueNumber);
+                    if (issue) {
+                        const vote = parseVote(issue);
+                        if (vote) {
+                            newReporters.add(vote.reporter);
+                        }
+                    }
+                }
+
+                // Merge reporters
+                newReporters.forEach(reporter => existingReporters.add(reporter));
                 existing.reporters = Array.from(existingReporters);
 
-                // CRITICAL FIX: Merge reporterVotes, but cap at MAX per user
+                // Merge issue numbers
+                existing.issueNumbers = Array.from(new Set([...existingIssues, ...newIssues]));
+
+                // CRITICAL FIX: Merge reporterVotes only for NEW issues
                 const mergedVotes = new Map();
 
                 // Load existing votes from pending.json
@@ -558,19 +587,23 @@ async function main() {
                     });
                 }
 
-                // Add new votes from current batch (but cap at MAX_VOTES_PER_USER)
-                if (data.reporterVotes) {
-                    data.reporterVotes.forEach((count, reporter) => {
-                        const currentCount = mergedVotes.get(reporter) || 0;
-                        const newTotal = currentCount + count;
+                // Add votes ONLY from new issues
+                for (const issueNumber of newIssues) {
+                    const issue = issues.find(i => i.number === issueNumber);
+                    if (issue) {
+                        const vote = parseVote(issue);
+                        if (vote) {
+                            const reporter = vote.reporter;
+                            const currentCount = mergedVotes.get(reporter) || 0;
 
-                        // Cap at MAX_VOTES_PER_USER (or unlimited for admins)
-                        if (ADMIN_USERS.includes(reporter)) {
-                            mergedVotes.set(reporter, newTotal);
-                        } else {
-                            mergedVotes.set(reporter, Math.min(newTotal, MAX_VOTES_PER_USER));
+                            // Cap at MAX_VOTES_PER_USER (or unlimited for admins)
+                            if (ADMIN_USERS.includes(reporter)) {
+                                mergedVotes.set(reporter, currentCount + 1);
+                            } else {
+                                mergedVotes.set(reporter, Math.min(currentCount + 1, MAX_VOTES_PER_USER));
+                            }
                         }
-                    });
+                    }
                 }
 
                 // Calculate total and update
@@ -578,9 +611,9 @@ async function main() {
                 existing.votes = totalVotes;
                 existing.reporterVotes = Object.fromEntries(mergedVotes);
 
-                console.log(`\n📝 Updated: ${data.name}`);
                 console.log(`   Unique reporters: ${existing.reporters.length}`);
                 console.log(`   Total votes: ${existing.votes}/${MIN_VOTES}`);
+                console.log(`   Tracked issues: ${existing.issueNumbers.join(', ')}`);
 
                 // NEW: Check if this update pushed it over threshold
                 if (totalVotes >= MIN_VOTES) {
@@ -592,9 +625,10 @@ async function main() {
                     id: key,
                     name: data.name,
                     platforms: { [data.platform]: data.id },
-                    votes: data.reporters.size,
+                    votes: calculateTotalVotes(data.reporterVotes || new Map()),
                     reporters: Array.from(data.reporters),
                     reporterVotes: Object.fromEntries(data.reporterVotes || new Map()),
+                    issueNumbers: data.issueNumbers, // ADDED: Track which issues were counted
                     added: new Date().toISOString()
                 };
                 pending.artists.push(newArtist);
