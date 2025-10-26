@@ -81,12 +81,12 @@ for (const file of dataFiles) {
     }
 }
 
-function fetchIssues() {
+function fetchIssues(state = 'all') {
     return new Promise((resolve, reject) => {
-        console.log('\n📡 Fetching issues from GitHub API...');
+        console.log(`\n📡 Fetching ${state} issues from GitHub API...`);
         const options = {
             hostname: 'api.github.com',
-            path: `/repos/${REPO}/issues?labels=vote&state=open&per_page=100`,
+            path: `/repos/${REPO}/issues?labels=vote&state=${state}&per_page=100`,
             headers: {
                 'User-Agent': 'TrueTunes-Bot',
                 'Authorization': `token ${GITHUB_TOKEN}`,
@@ -102,7 +102,7 @@ function fetchIssues() {
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
-                    console.log(`✓ Fetched ${Array.isArray(parsed) ? parsed.length : 0} issues`);
+                    console.log(`✓ Fetched ${Array.isArray(parsed) ? parsed.length : 0} ${state} issues`);
                     resolve(parsed);
                 } catch (e) {
                     console.error('✗ Failed to parse API response:', e.message);
@@ -301,7 +301,23 @@ async function main() {
         console.log('Starting vote processing...');
         console.log('='.repeat(60));
 
-        const issues = await fetchIssues();
+        // Fetch BOTH open and recently closed issues for complete picture
+        const [openIssues, closedIssues] = await Promise.all([
+            fetchIssues('open'),
+            fetchIssues('closed')
+        ]);
+
+        // Filter closed issues to last 7 days to avoid processing ancient history
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const recentlyClosed = closedIssues.filter(issue =>
+            new Date(issue.closed_at) > sevenDaysAgo
+        );
+
+        console.log(`\n📊 Issue Summary:`);
+        console.log(`   Open: ${openIssues.length}`);
+        console.log(`   Recently Closed: ${recentlyClosed.length}`);
+
+        const issues = openIssues;
         console.log(`\nFound ${issues.length} open vote issues`);
 
         if (issues.length === 0) {
@@ -312,6 +328,85 @@ async function main() {
         const flagged = JSON.parse(fs.readFileSync('data/flagged.json', 'utf8'));
         const pending = JSON.parse(fs.readFileSync('data/pending.json', 'utf8'));
         const stats = JSON.parse(fs.readFileSync('data/stats.json', 'utf8'));
+
+        // Build a complete map of ALL historical votes (including recently closed)
+        const allHistoricalIssues = [...openIssues, ...recentlyClosed];
+        const historicalVotesByArtist = new Map();
+
+        console.log('\n' + '='.repeat(60));
+        console.log('Building Complete Vote History');
+        console.log('='.repeat(60));
+
+        for (const issue of allHistoricalIssues) {
+            const vote = parseVote(issue);
+            if (!vote) continue;
+
+            const key = `${vote.platform}:${vote.id}`;
+
+            if (!historicalVotesByArtist.has(key)) {
+                historicalVotesByArtist.set(key, {
+                    name: vote.artist,
+                    platform: vote.platform,
+                    id: vote.id,
+                    openIssues: [],
+                    closedIssues: [],
+                    allReporters: new Set(),
+                    reporterVotes: new Map()
+                });
+            }
+
+            const data = historicalVotesByArtist.get(key);
+            data.allReporters.add(vote.reporter);
+
+            if (issue.state === 'open') {
+                data.openIssues.push(issue.number);
+            } else {
+                data.closedIssues.push(issue.number);
+            }
+
+            // Count votes per reporter
+            const currentCount = data.reporterVotes.get(vote.reporter) || 0;
+            data.reporterVotes.set(vote.reporter, currentCount + 1);
+        }
+
+        console.log(`\n📈 Historical Vote Summary:`);
+        for (const [key, data] of historicalVotesByArtist) {
+            const totalVotes = data.openIssues.length + data.closedIssues.length;
+            console.log(`   ${data.name}: ${totalVotes} total (${data.openIssues.length} open, ${data.closedIssues.length} closed)`);
+
+            // CRITICAL: If artist has >= 10 total votes but is NOT in flagged.json, flag them now!
+            if (totalVotes >= MIN_VOTES) {
+                const alreadyFlagged = flagged.artists.some(a =>
+                    a.platforms[data.platform] === data.id
+                );
+
+                if (!alreadyFlagged) {
+                    console.log(`   🚩 SHOULD BE FLAGGED: ${data.name} (${totalVotes} votes)`);
+
+                    // Add to flagged
+                    const newFlagged = {
+                        id: key,
+                        name: data.name,
+                        platforms: { [data.platform]: data.id },
+                        votes: totalVotes,
+                        reporters: Array.from(data.allReporters),
+                        reporterVotes: Object.fromEntries(data.reporterVotes),
+                        added: new Date().toISOString()
+                    };
+
+                    flagged.artists.push(newFlagged);
+
+                    // Remove from pending if present
+                    pending.artists = pending.artists.filter(a =>
+                        a.platforms[data.platform] !== data.id
+                    );
+
+                    // Close ALL related issues (open and recently closed that aren't already closed)
+                    const allIssuesToClose = [...data.openIssues];
+                    thresholdIssues.push(...allIssuesToClose);
+                }
+            }
+        }
 
         const artistVotes = new Map();
         const invalidIssues = [];
@@ -520,6 +615,27 @@ async function main() {
 
         fs.writeFileSync('data/stats.json', JSON.stringify(stats, null, 2));
         console.log('✓ Saved stats.json');
+
+        // VALIDATION: Check for inconsistencies
+        console.log('\n' + '='.repeat(60));
+        console.log('VALIDATION CHECK');
+        console.log('='.repeat(60));
+
+        for (const artist of pending.artists) {
+            const artistId = Object.values(artist.platforms)[0];
+            const key = artist.id;
+
+            // Check if this pending artist actually has enough votes to be flagged
+            const historical = historicalVotesByArtist.get(key);
+            if (historical) {
+                const totalVotes = historical.openIssues.length + historical.closedIssues.length;
+                if (totalVotes >= MIN_VOTES) {
+                    console.log(`⚠️  WARNING: ${artist.name} in pending with ${artist.votes} recorded votes, but has ${totalVotes} total votes!`);
+                }
+            }
+        }
+
+        console.log('✓ Validation complete');
 
         console.log('\n' + '='.repeat(60));
         console.log('SUMMARY');
