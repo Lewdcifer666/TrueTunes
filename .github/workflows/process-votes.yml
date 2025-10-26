@@ -1,12 +1,14 @@
 name: Process Votes
 
 on:
-  # Trigger IMMEDIATELY when an issue is opened or labeled with "vote"
   issues:
     types: [opened, labeled]
-  
-  # Keep manual trigger option for testing
   workflow_dispatch:
+
+# CRITICAL: Prevent concurrent runs that cause merge conflicts
+concurrency:
+  group: process-votes
+  cancel-in-progress: false
 
 jobs:
   process:
@@ -16,11 +18,9 @@ jobs:
       - name: Check if should process
         id: check_label
         run: |
-          # If manually triggered, always process
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "has_vote_label=true" >> $GITHUB_OUTPUT
             echo "✅ Manual trigger - will process all open votes"
-          # If triggered by issue, check if it has the "vote" label
           elif [[ "${{ contains(github.event.issue.labels.*.name, 'vote') }}" == "true" ]]; then
             echo "has_vote_label=true" >> $GITHUB_OUTPUT
             echo "✅ Issue has 'vote' label - will process"
@@ -42,12 +42,26 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Pull latest changes
+      - name: Pull latest changes with retry
         if: steps.check_label.outputs.has_vote_label == 'true'
         run: |
           git config user.name "TrueTunes Bot"
           git config user.email "bot@truetunes.github.io"
-          git pull --rebase origin main || echo "Pull failed, continuing anyway"
+          
+          for i in {1..5}; do
+            echo "📥 Pull attempt $i/5"
+            if git pull --rebase origin main; then
+              echo "✅ Pull successful"
+              break
+            else
+              if [ $i -eq 5 ]; then
+                echo "❌ Pull failed after 5 attempts"
+                exit 1
+              fi
+              echo "⚠️ Pull failed, waiting before retry..."
+              sleep $((i * 3))
+            fi
+          done
       
       - name: Process votes and check thresholds
         if: steps.check_label.outputs.has_vote_label == 'true'
@@ -61,40 +75,78 @@ jobs:
           fi
           node scripts/process-votes.js
       
-      - name: Commit and push changes
+      - name: Commit and push changes with retry
         if: steps.check_label.outputs.has_vote_label == 'true'
         run: |
           git add data/*.json
+          
           if git diff --staged --quiet; then
             echo "✅ No changes to commit (vote added to pending)"
-          else
-            # Check if any artist was flagged
-            if grep -q "FLAGGED" <<< "$(git diff --cached)"; then
-              if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-                git commit -m "🚩 Auto-flagged: Artist reached 10 votes (manual trigger)"
-              else
-                git commit -m "🚩 Auto-flagged: Artist reached 10 votes (triggered by issue #${{ github.event.issue.number }})"
-              fi
-            else
-              if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-                git commit -m "📝 Auto-update: Processed votes (manual trigger)"
-              else
-                git commit -m "📝 Auto-update: Added vote from issue #${{ github.event.issue.number }})"
-              fi
-            fi
-            
-            # Push with retry logic
-            for i in {1..3}; do
-              if git push; then
-                echo "✅ Changes pushed successfully"
-                break
-              else
-                echo "⚠️ Push failed (attempt $i/3), retrying..."
-                git pull --rebase origin main
-                sleep 2
-              fi
-            done
+            exit 0
           fi
+          
+          # Determine commit message
+          if grep -q "FLAGGED" <<< "$(git diff --cached)"; then
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              COMMIT_MSG="🚩 Auto-flagged: Artist reached 10 votes (manual trigger)"
+            else
+              COMMIT_MSG="🚩 Auto-flagged: Artist reached 10 votes (issue #${{ github.event.issue.number }})"
+            fi
+          else
+            if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              COMMIT_MSG="📝 Auto-update: Processed votes (manual trigger)"
+            else
+              COMMIT_MSG="📝 Auto-update: Added vote from issue #${{ github.event.issue.number }}"
+            fi
+          fi
+          
+          git commit -m "$COMMIT_MSG"
+          
+          # Push with smart retry and conflict resolution
+          for i in {1..10}; do
+            echo "📤 Push attempt $i/10"
+            
+            if git push origin main; then
+              echo "✅ Changes pushed successfully"
+              break
+            else
+              if [ $i -eq 10 ]; then
+                echo "❌ Push failed after 10 attempts"
+                exit 1
+              fi
+              
+              echo "⚠️ Push failed (attempt $i/10), pulling and retrying..."
+              
+              # Reset to before commit
+              git reset --soft HEAD~1
+              
+              # Pull latest
+              if ! git pull --rebase origin main; then
+                echo "❌ Pull failed, trying merge strategy..."
+                git rebase --abort 2>/dev/null || true
+                git pull --no-rebase origin main || {
+                  echo "❌ Merge failed completely"
+                  exit 1
+                }
+              fi
+              
+              # Re-process votes with latest data
+              echo "🔄 Re-processing votes with latest data..."
+              node scripts/process-votes.js
+              
+              # Re-add and commit
+              git add data/*.json
+              if ! git diff --staged --quiet; then
+                git commit -m "$COMMIT_MSG"
+              else
+                echo "✅ No changes after re-processing (already applied)"
+                break
+              fi
+              
+              # Wait before retry (exponential backoff)
+              sleep $((i * 2))
+            fi
+          done
       
       - name: Summary
         if: steps.check_label.outputs.has_vote_label == 'true'
