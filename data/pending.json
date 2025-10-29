@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-29T21:38:05.065Z",
-  "updated": "2025-10-29T21:38:05.065Z",
+  "version": "2025-10-29T21:44:07.721Z",
+  "updated": "2025-10-29T21:44:07.721Z",
   "artists": [
     {
       "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
@@ -55,6 +55,24 @@
       "issueNumbers": [
         53
       ]
+    },
+    {
+      "id": "spotify:5GhrfzEjXYGDqEnnM1IahS",
+      "name": "Crimson Vale",
+      "platforms": {
+        "spotify": "5GhrfzEjXYGDqEnnM1IahS"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        93
+      ],
+      "added": "2025-10-29T21:44:07.721Z"
     }
   ]
 }
