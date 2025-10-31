@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-31T20:19:43.493Z",
-  "updated": "2025-10-31T20:19:43.493Z",
+  "version": "2025-10-31T20:21:53.055Z",
+  "updated": "2025-10-31T20:21:53.055Z",
   "artists": [
     {
       "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
@@ -109,6 +109,24 @@
         95
       ],
       "added": "2025-10-31T20:16:28.094Z"
+    },
+    {
+      "id": "spotify:5COVZd3zir997pQ2dDNMnJ",
+      "name": "Dark Noir",
+      "platforms": {
+        "spotify": "5COVZd3zir997pQ2dDNMnJ"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        96
+      ],
+      "added": "2025-10-31T20:21:53.055Z"
     }
   ]
 }
