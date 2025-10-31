@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-31T21:15:57.686Z",
-  "updated": "2025-10-31T21:15:57.686Z",
-  "total": 11,
+  "version": "2025-10-31T21:16:12.985Z",
+  "updated": "2025-10-31T21:16:12.985Z",
+  "total": 12,
   "artists": [
     {
       "id": "test1",
@@ -137,6 +137,21 @@
         "Lewdcifer666": 10
       },
       "added": "2025-10-31T21:03:30.798Z"
+    },
+    {
+      "id": "spotify:6ydIK3fZelJNbF5KwgZUga",
+      "name": "Obsidian Swing",
+      "platforms": {
+        "spotify": "6ydIK3fZelJNbF5KwgZUga"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:16:12.980Z"
     }
   ]
 }
