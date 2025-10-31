@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-31T21:28:01.954Z",
-  "updated": "2025-10-31T21:28:01.954Z",
-  "total": 12,
+  "version": "2025-10-31T21:28:39.455Z",
+  "updated": "2025-10-31T21:28:39.455Z",
+  "total": 13,
   "artists": [
     {
       "id": "test1",
@@ -152,6 +152,21 @@
         "Lewdcifer666": 10
       },
       "added": "2025-10-31T21:16:12.980Z"
+    },
+    {
+      "id": "spotify:1MSx7eCIGLByF6My5VMgrH",
+      "name": "Ghost//Signal",
+      "platforms": {
+        "spotify": "1MSx7eCIGLByF6My5VMgrH"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:28:39.452Z"
     }
   ]
 }

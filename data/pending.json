@@ -1,33 +1,7 @@
 {
-  "version": "2025-10-31T21:28:01.954Z",
-  "updated": "2025-10-31T21:28:01.954Z",
+  "version": "2025-10-31T21:28:39.455Z",
+  "updated": "2025-10-31T21:28:39.455Z",
   "artists": [
-    {
-      "id": "spotify:1MSx7eCIGLByF6My5VMgrH",
-      "name": "Ghost//Signal",
-      "platforms": {
-        "spotify": "1MSx7eCIGLByF6My5VMgrH"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "added": "2025-10-24T19:34:24.898Z",
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        53,
-        116,
-        115,
-        117,
-        118,
-        120,
-        119,
-        122,
-        121
-      ]
-    },
     {
       "id": "spotify:5GhrfzEjXYGDqEnnM1IahS",
       "name": "Crimson Vale",
