@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-31T21:03:03.972Z",
-  "updated": "2025-10-31T21:03:03.972Z",
-  "total": 10,
+  "version": "2025-10-31T21:03:30.801Z",
+  "updated": "2025-10-31T21:03:30.801Z",
+  "total": 11,
   "artists": [
     {
       "id": "test1",
@@ -122,6 +122,21 @@
       "reporterVotes": {
         "Lewdcifer666": 10
       }
+    },
+    {
+      "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
+      "name": "The Dad Bods Pop Punk",
+      "platforms": {
+        "spotify": "4wVSmEjrheqRkOI4po2hhj"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:03:30.798Z"
     }
   ]
 }
