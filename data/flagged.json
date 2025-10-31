@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-31T21:33:13.708Z",
-  "updated": "2025-10-31T21:33:13.708Z",
-  "total": 13,
+  "version": "2025-10-31T21:33:27.128Z",
+  "updated": "2025-10-31T21:33:27.128Z",
+  "total": 14,
   "artists": [
     {
       "id": "test1",
@@ -167,6 +167,21 @@
         "Lewdcifer666": 10
       },
       "added": "2025-10-31T21:28:39.452Z"
+    },
+    {
+      "id": "spotify:7uFJ92LH32VSDrBzMTsKWi",
+      "name": "Future K1d",
+      "platforms": {
+        "spotify": "7uFJ92LH32VSDrBzMTsKWi"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:33:27.126Z"
     }
   ]
 }
