@@ -1,6 +1,6 @@
 {
-  "version": "2025-10-31T19:50:00.877Z",
-  "updated": "2025-10-31T19:50:00.877Z",
+  "version": "2025-10-31T20:16:28.094Z",
+  "updated": "2025-10-31T20:16:28.094Z",
   "artists": [
     {
       "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
@@ -91,6 +91,24 @@
         94
       ],
       "added": "2025-10-29T21:45:06.612Z"
+    },
+    {
+      "id": "spotify:3WPTsMdNZY3cEeWUcKrkpt",
+      "name": "Kiyo",
+      "platforms": {
+        "spotify": "3WPTsMdNZY3cEeWUcKrkpt"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        95
+      ],
+      "added": "2025-10-31T20:16:28.094Z"
     }
   ]
 }
