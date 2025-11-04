@@ -1,6 +1,6 @@
 {
-  "version": "2025-11-04T23:16:24.350Z",
-  "updated": "2025-11-04T23:16:24.350Z",
+  "version": "2025-11-04T23:24:12.921Z",
+  "updated": "2025-11-04T23:24:12.921Z",
   "artists": [
     {
       "id": "spotify:5GhrfzEjXYGDqEnnM1IahS",
@@ -55,6 +55,24 @@
         96
       ],
       "added": "2025-10-31T20:21:53.055Z"
+    },
+    {
+      "id": "spotify:1s7brFQBWfA9z2YR7bl9nh",
+      "name": "Bad Apples",
+      "platforms": {
+        "spotify": "1s7brFQBWfA9z2YR7bl9nh"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        134
+      ],
+      "added": "2025-11-04T23:24:12.920Z"
     }
   ]
 }
