@@ -54,6 +54,11 @@
         loadMoreStep: 20
     };
 
+    let communityView = {
+        displayedCount: 10,
+        loadMoreStep: 10
+    };
+
     // ===== DEBOUNCING & STATE MANAGEMENT =====
     let artistPageButtonDebounce = null;
     let lastProcessedArtistId = null;
@@ -460,49 +465,72 @@
 
     async function fetchCommunityActivity() {
         try {
-            console.log('[TrueTunes] Fetching community activity...');
+            console.log('[TrueTunes] Fetching community activity from data files...');
 
-            const headers = settings.githubToken ? {
-                'Authorization': `token ${settings.githubToken}`
-            } : {};
+            const [pendingResponse, flaggedResponse] = await Promise.all([
+                fetch('https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/pending.json?t=' + Date.now()),
+                fetch('https://raw.githubusercontent.com/Lewdcifer666/TrueTunes/main/data/flagged.json?t=' + Date.now())
+            ]);
 
-            const response = await fetch(`${GITHUB_API}?labels=vote&state=all&per_page=100&sort=created&direction=desc`, { headers });
+            const pending = await pendingResponse.json();
+            const flagged = await flaggedResponse.json();
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            communityFeed.recentActivity = [];
 
-            const issues = await response.json();
+            // Add pending artists
+            pending.artists.forEach(artist => {
+                const platformKey = Object.keys(artist.platforms)[0];
+                const artistId = artist.platforms[platformKey];
 
-            communityFeed.recentActivity = issues.map(issue => {
-                const body = issue.body || '';
-                const artistNameMatch = issue.title.match(/Vote:\s*(.+)/);
-                const artistIdMatch = body.match(/Artist ID:\s*([^\s\n]+)/);
-                const platformMatch = body.match(/Platform:\s*(\w+)/i);
-
-                // NORMALIZE: Remove spotify: prefix if present
-                let artistId = artistIdMatch ? artistIdMatch[1] : null;
-                if (artistId) {
-                    artistId = artistId.replace(/^spotify:/, '');
+                if (artist.reporters && artist.reporters.length > 0) {
+                    artist.reporters.forEach(reporter => {
+                        communityFeed.recentActivity.push({
+                            issueNumbers: artist.issueNumbers || [],
+                            artistName: artist.name,
+                            artistId: artistId,
+                            platform: platformKey,
+                            reporter: reporter,
+                            reporterAvatar: `https://github.com/${reporter}.png`,
+                            createdAt: artist.added,
+                            updatedAt: artist.added,
+                            state: 'open',
+                            comments: 0
+                        });
+                    });
                 }
+            });
 
-                return {
-                    issueNumber: issue.number,
-                    artistName: artistNameMatch ? artistNameMatch[1] : 'Unknown Artist',
-                    artistId: artistId,
-                    platform: platformMatch ? platformMatch[1] : 'Unknown',
-                    reporter: issue.user.login,
-                    reporterAvatar: issue.user.avatar_url,
-                    createdAt: issue.created_at,
-                    updatedAt: issue.updated_at,
-                    state: issue.state,
-                    comments: issue.comments
-                };
-            }).filter(activity => activity.artistId);
+            // Add flagged artists
+            flagged.artists.forEach(artist => {
+                const platformKey = Object.keys(artist.platforms)[0];
+                const artistId = artist.platforms[platformKey];
+
+                if (artist.reporters && artist.reporters.length > 0) {
+                    artist.reporters.forEach(reporter => {
+                        communityFeed.recentActivity.push({
+                            issueNumbers: artist.issueNumbers || [],
+                            artistName: artist.name,
+                            artistId: artistId,
+                            platform: platformKey,
+                            reporter: reporter,
+                            reporterAvatar: `https://github.com/${reporter}.png`,
+                            createdAt: artist.added,
+                            updatedAt: artist.added,
+                            state: 'closed',
+                            comments: 0
+                        });
+                    });
+                }
+            });
+
+            communityFeed.recentActivity.sort((a, b) =>
+                new Date(b.createdAt) - new Date(a.createdAt)
+            );
 
             communityFeed.lastUpdated = new Date().toISOString();
 
-            console.log(`[TrueTunes] Fetched ${communityFeed.recentActivity.length} community activities`);
+            console.log(`[TrueTunes] Loaded ${communityFeed.recentActivity.length} activity entries`);
+            console.log(`[TrueTunes] Pending: ${pending.artists.length}, Flagged: ${flagged.artists.length}`);
 
             if (currentTab === 'community') {
                 renderTrueTunesPanel();
@@ -875,8 +903,8 @@
             </div>
 
             <!-- Grouped Activity Feed -->
-            <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
-                ${groupedActivities.length > 0 ? groupedActivities.map(group => {
+            <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                ${groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
             // FIXED: Only count OPEN issues for vote progress
             const openIssues = communityFeed.recentActivity.filter(activity => {
                 const normalizedId = activity.artistId?.replace(/^spotify:/, '');
@@ -977,6 +1005,11 @@
                         </button>
                     </div>
                 `}
+            ${groupedActivities.length > communityView.displayedCount ? `
+                <div id="community-load-more" style="padding: 16px; text-align: center; color: #999; font-size: 12px;">
+                    Scroll to load more (${groupedActivities.length - communityView.displayedCount} remaining)
+                </div>
+            ` : ''}
             </div>
 
             <!-- Auto-Update Notice -->
@@ -985,6 +1018,172 @@
             </div>
         </div>
     `;
+    }
+
+    function updateCommunityFeedOnly() {
+        const feedContainer = document.getElementById('community-feed-container');
+        const loadMoreIndicator = document.getElementById('community-load-more');
+
+        if (!feedContainer) return;
+
+        // Save scroll position
+        const savedScrollTop = feedContainer.scrollTop;
+
+        // Group activities (same logic as createCommunityTab)
+        const artistGroups = new Map();
+        const MIN_VOTES = 10;
+
+        communityFeed.recentActivity.forEach(activity => {
+            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+            if (!normalizedId) return;
+
+            if (!artistGroups.has(normalizedId)) {
+                artistGroups.set(normalizedId, {
+                    artistId: normalizedId,
+                    artistName: activity.artistName,
+                    platform: activity.platform,
+                    reporters: [],
+                    reporterAvatars: new Map(),
+                    issueNumbers: [],
+                    states: new Set(),
+                    latestTime: activity.createdAt,
+                    comments: 0
+                });
+            }
+
+            const group = artistGroups.get(normalizedId);
+            if (!group.reporters.includes(activity.reporter)) {
+                group.reporters.push(activity.reporter);
+                group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
+            }
+            group.issueNumbers.push(activity.issueNumber);
+            group.states.add(activity.state);
+            group.comments += activity.comments;
+            if (new Date(activity.createdAt) > new Date(group.latestTime)) {
+                group.latestTime = activity.createdAt;
+            }
+        });
+
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+        const formatTimeAgo = (dateString) => {
+            const now = new Date();
+            const past = new Date(dateString);
+            const diffMs = now - past;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        };
+
+        // Build HTML for displayed items
+        const displayedActivities = groupedActivities.slice(0, communityView.displayedCount);
+
+        feedContainer.innerHTML = displayedActivities.length > 0 ? displayedActivities.map(group => {
+            const openIssues = communityFeed.recentActivity.filter(activity => {
+                const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+                return normalizedId === group.artistId && activity.state === 'open';
+            });
+            const totalVotes = openIssues.length;
+            const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
+            const isOpen = group.states.has('open');
+            const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
+            const issueLinks = (group.issueNumbers && group.issueNumbers.length > 0)
+                ? group.issueNumbers.filter(n => n !== null).sort((a, b) => a - b).map(n =>
+                    `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
+            target="_blank" 
+            style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
+            onclick="event.stopPropagation();"
+            onmouseover="this.style.textDecoration='underline';"
+            onmouseout="this.style.textDecoration='none';">#${n}</a>`
+                ).join(', ')
+                : '<span style="color: #999;">Community flagged</span>';
+
+            return `
+            <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#666')};">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                        ${group.reporters.slice(0, 3).map(reporter => `
+                            <img src="${group.reporterAvatars.get(reporter)}" 
+                                 style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);"
+                                 title="@${reporter}">
+                        `).join('')}
+                        ${group.reporters.length > 3 ? `
+                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid rgba(126, 34, 206, 0.5);">
+                                +${group.reporters.length - 3}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; font-size: 12px; color: #7e22ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${group.reporters.map(r => `@${r}`).join(', ')}
+                        </div>
+                        <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(group.latestTime)}</div>
+                    </div>
+                    <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
+                        ${isOpen ? 'open' : 'closed'}
+                    </span>
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <a href="https://open.spotify.com/artist/${group.artistId}" 
+                       target="_blank"
+                       style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
+                       onclick="event.stopPropagation();"
+                       onmouseover="this.style.color='#7e22ce';"
+                       onmouseout="this.style.color='white';">
+                        ${group.artistName}
+                    </a>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
+                        <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
+                        <span style="flex-shrink: 0;">•</span>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
+                        ${group.comments > 0 ? `
+                            <span style="flex-shrink: 0;">•</span>
+                            <span style="flex-shrink: 0;">💬 ${group.comments}</span>
+                        ` : ''}
+                    </div>
+                    ${isOpen ? `
+                        <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                            ${totalVotes}/${MIN_VOTES} Votes
+                        </span>
+                    ` : (isFlagged ? `
+                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                            Flagged
+                        </span>
+                    ` : '')}
+                </div>
+                ${isOpen ? `
+                    <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        }).join('') : `
+        <div style="text-align: center; color: #999; padding: 60px 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+            <p>No community activity yet</p>
+        </div>
+    `;
+
+        // Update or remove the "load more" indicator
+        if (loadMoreIndicator) {
+            if (groupedActivities.length > communityView.displayedCount) {
+                loadMoreIndicator.textContent = `Scroll to load more (${groupedActivities.length - communityView.displayedCount} remaining)`;
+                loadMoreIndicator.style.display = 'block';
+            } else {
+                loadMoreIndicator.style.display = 'none';
+            }
+        }
+
+        // Restore scroll position
+        feedContainer.scrollTop = savedScrollTop;
     }
 
     function createStatsTab() {
@@ -1370,6 +1569,15 @@
         const panel = document.getElementById('truetunes-panel-content');
         if (!panel) return;
 
+        // Save scroll position for community tab
+        let savedScrollTop = 0;
+        if (currentTab === 'community') {
+            const feedContainer = document.getElementById('community-feed-container');
+            if (feedContainer) {
+                savedScrollTop = feedContainer.scrollTop;
+            }
+        }
+
         const tabs = {
             account: createAccountTab(),
             community: createCommunityTab(),
@@ -1402,6 +1610,17 @@
         setTimeout(() => {
             panel.innerHTML = tabs[currentTab];
             panel.style.opacity = '1';
+
+            // Restore scroll position for community tab
+            if (currentTab === 'community' && savedScrollTop > 0) {
+                setTimeout(() => {
+                    const feedContainer = document.getElementById('community-feed-container');
+                    if (feedContainer) {
+                        feedContainer.scrollTop = savedScrollTop;
+                    }
+                }, 0);
+            }
+
             attachTabEventListeners();
         }, 150);
     }
@@ -1440,6 +1659,7 @@
                     btn.disabled = true;
                 }
                 await fetchCommunityActivity();
+                communityView.displayedCount = 10; // Reset to show first page
                 if (btn) {
                     btn.textContent = '🔄 Refresh';
                     btn.disabled = false;
@@ -1450,6 +1670,74 @@
             document.getElementById('truetunes-fetch-community')?.addEventListener('click', async () => {
                 await fetchCommunityActivity();
             });
+
+            // Lazy loading scroll handler with debugging
+            const feedContainer = document.getElementById('community-feed-container');
+            if (feedContainer) {
+                console.log('[TrueTunes Community] Attached scroll listener');
+
+                feedContainer.addEventListener('scroll', () => {
+                    const { scrollTop, scrollHeight, clientHeight } = feedContainer;
+
+                    console.log('[TrueTunes Community] Scroll event:', {
+                        scrollTop,
+                        scrollHeight,
+                        clientHeight,
+                        threshold: scrollHeight * 0.8,
+                        shouldLoad: scrollTop + clientHeight >= scrollHeight * 0.8
+                    });
+
+                    // Load more when scrolled 80% down
+                    if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+                        const artistGroups = new Map();
+
+                        communityFeed.recentActivity.forEach(activity => {
+                            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+                            if (!normalizedId) return;
+
+                            if (!artistGroups.has(normalizedId)) {
+                                artistGroups.set(normalizedId, { latestTime: activity.createdAt });
+                            }
+                        });
+
+                        const totalGroups = artistGroups.size;
+
+                        console.log('[TrueTunes Community] Lazy load check:', {
+                            displayed: communityView.displayedCount,
+                            total: totalGroups,
+                            shouldLoadMore: communityView.displayedCount < totalGroups
+                        });
+
+                        if (communityView.displayedCount < totalGroups) {
+                            console.log('[TrueTunes Community] Loading more items...');
+                            communityView.displayedCount += communityView.loadMoreStep;
+                            updateCommunityFeedOnly();
+                        }
+                    }
+                });
+
+                // CRITICAL: Check if container is actually scrollable
+                setTimeout(() => {
+                    const { scrollHeight, clientHeight } = feedContainer;
+                    console.log('[TrueTunes Community] Container check:', {
+                        scrollHeight,
+                        clientHeight,
+                        isScrollable: scrollHeight > clientHeight,
+                        totalActivities: communityFeed.recentActivity.length
+                    });
+
+                    // If content doesn't fill container, try loading more automatically
+                    if (scrollHeight <= clientHeight && communityView.displayedCount < communityFeed.recentActivity.length) {
+                        console.log('[TrueTunes Community] Auto-loading more (content too short)');
+                        communityView.displayedCount = Math.min(
+                            communityView.displayedCount + communityView.loadMoreStep,
+                            communityFeed.recentActivity.length
+                        );
+                        updateCommunityFeedOnly();
+                    }
+                }, 100);
+            }
+
         } else if (currentTab === 'settings') {
             document.getElementById('truetunes-setting-warnings')?.addEventListener('change', (e) => {
                 settings.showWarnings = e.target.checked;
