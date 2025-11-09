@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T08:08:57.763Z",
-  "updated": "2025-11-09T08:08:57.763Z",
-  "total": 23,
+  "version": "2025-11-09T08:10:14.008Z",
+  "updated": "2025-11-09T08:10:14.008Z",
+  "total": 24,
   "artists": [
     {
       "id": "test1",
@@ -413,6 +413,33 @@
         212,
         211
       ]
+    },
+    {
+      "id": "spotify:6bmHwapdVkl8LMts4cKBms",
+      "name": "Velvet Rebellion",
+      "platforms": {
+        "spotify": "6bmHwapdVkl8LMts4cKBms"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        230,
+        229,
+        228,
+        227,
+        226,
+        225,
+        224,
+        223,
+        222,
+        221
+      ],
+      "added": "2025-11-09T08:10:14.006Z"
     }
   ]
 }
