@@ -1,33 +1,7 @@
 {
-  "version": "2025-11-09T03:01:44.953Z",
-  "updated": "2025-11-09T03:01:44.953Z",
+  "version": "2025-11-09T03:03:09.241Z",
+  "updated": "2025-11-09T03:03:09.241Z",
   "artists": [
-    {
-      "id": "spotify:5COVZd3zir997pQ2dDNMnJ",
-      "name": "Dark Noir",
-      "platforms": {
-        "spotify": "5COVZd3zir997pQ2dDNMnJ"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        96,
-        157,
-        156,
-        158,
-        160,
-        159,
-        162,
-        161,
-        163
-      ],
-      "added": "2025-10-31T20:21:53.055Z"
-    },
     {
       "id": "spotify:1s7brFQBWfA9z2YR7bl9nh",
       "name": "Bad Apples",
