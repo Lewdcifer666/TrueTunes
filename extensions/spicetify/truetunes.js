@@ -3512,9 +3512,19 @@
                                 <!-- Header: Time + Status Badge -->
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
                                     <span>${formatTimeAgo(group.latestTime)}</span>
-                                    <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
-                                        ${isOpen ? 'open' : 'closed'}
-                                    </span>
+                                    ${isOpen ? `
+                                        <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                            open
+                                        </span>
+                                    ` : (isFlagged ? `
+                                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                            flagged
+                                        </span>
+                                    ` : `
+                                        <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                            closed
+                                        </span>
+                                    `)}
                                 </div>
                                 
                                 <!-- Artist Name -->
@@ -3661,13 +3671,7 @@
         `;
 
         controls.innerHTML = `
-            <label style="display: flex; align-items: center; gap: 6px; color: white; font-size: 12px; cursor: pointer;">
-                <span style="font-size: 11px; color: #999;">Opacity:</span>
-                <input type="range" id="truetunes-sidebar-opacity" min="10" max="100" value="100" step="1" style="width: 100px;">
-                <span id="truetunes-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
-            </label>
-            <div style="flex: 1;"></div>
-            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; margin-left: auto;">
+            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
                 🔄 Refresh
             </button>
         `;
@@ -3774,7 +3778,7 @@
 
                 const content = sidebar.querySelector('#truetunes-sidebar-content');
                 if (content) {
-                    content.innerHTML = createCommunityTab();
+                    content.innerHTML = createSidebarCommunityFeed();
 
                     // Reattach scroll listener for lazy loading
                     const feedContainer = content.querySelector('#community-feed-container');
