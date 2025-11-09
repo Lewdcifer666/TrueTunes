@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T03:47:39.552Z",
-  "updated": "2025-11-09T03:47:39.552Z",
-  "total": 18,
+  "version": "2025-11-09T04:01:24.287Z",
+  "updated": "2025-11-09T04:01:24.287Z",
+  "total": 19,
   "artists": [
     {
       "id": "test1",
@@ -258,12 +258,12 @@
       "platforms": {
         "spotify": "1s7brFQBWfA9z2YR7bl9nh"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T03:47:08.967Z",
       "issueNumbers": [
@@ -277,6 +277,33 @@
         166,
         165,
         134
+      ]
+    },
+    {
+      "id": "spotify:5L5yD7T9JncTF1bbzCoIQm",
+      "name": "Shadow Beloved",
+      "platforms": {
+        "spotify": "5L5yD7T9JncTF1bbzCoIQm"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T04:00:48.248Z",
+      "issueNumbers": [
+        182,
+        181,
+        180,
+        179,
+        178,
+        177,
+        176,
+        175,
+        174,
+        135
       ]
     }
   ]
