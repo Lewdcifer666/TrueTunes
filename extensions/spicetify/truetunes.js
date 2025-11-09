@@ -466,7 +466,7 @@
                 'Authorization': `token ${settings.githubToken}`
             } : {};
 
-            const response = await fetch(`${GITHUB_API}?labels=vote&state=all&per_page=50&sort=updated&direction=desc`, { headers });
+            const response = await fetch(`${GITHUB_API}?labels=vote&state=all&per_page=100&sort=created&direction=desc`, { headers });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -877,7 +877,12 @@
             <!-- Grouped Activity Feed -->
             <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
                 ${groupedActivities.length > 0 ? groupedActivities.map(group => {
-            const totalVotes = group.issueNumbers.length;
+            // FIXED: Only count OPEN issues for vote progress
+            const openIssues = communityFeed.recentActivity.filter(activity => {
+                const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+                return normalizedId === group.artistId && activity.state === 'open';
+            });
+            const totalVotes = openIssues.length;
             const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
             const isOpen = group.states.has('open');
             const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
