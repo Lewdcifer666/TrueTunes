@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T04:41:31.498Z",
-  "updated": "2025-11-09T04:41:31.498Z",
-  "total": 19,
+  "version": "2025-11-09T04:43:58.749Z",
+  "updated": "2025-11-09T04:43:58.749Z",
+  "total": 20,
   "artists": [
     {
       "id": "test1",
@@ -304,6 +304,33 @@
         175,
         174,
         135
+      ]
+    },
+    {
+      "id": "spotify:1Q43bUUmvTTVi6Eue5MdJq",
+      "name": "The Hollow",
+      "platforms": {
+        "spotify": "1Q43bUUmvTTVi6Eue5MdJq"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T04:43:58.745Z",
+      "issueNumbers": [
+        191,
+        190,
+        189,
+        188,
+        187,
+        186,
+        185,
+        184,
+        183,
+        136
       ]
     }
   ]

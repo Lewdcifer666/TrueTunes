@@ -1,33 +1,7 @@
 {
-  "version": "2025-11-09T04:41:31.498Z",
-  "updated": "2025-11-09T04:41:31.498Z",
+  "version": "2025-11-09T04:43:58.749Z",
+  "updated": "2025-11-09T04:43:58.749Z",
   "artists": [
-    {
-      "id": "spotify:1Q43bUUmvTTVi6Eue5MdJq",
-      "name": "The Hollow",
-      "platforms": {
-        "spotify": "1Q43bUUmvTTVi6Eue5MdJq"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        136,
-        183,
-        184,
-        186,
-        185,
-        187,
-        188,
-        190,
-        189
-      ],
-      "added": "2025-11-09T00:50:10.761Z"
-    },
     {
       "id": "spotify:2aS24QHQcFbLYynpaTl3Ia",
       "name": "Crimson Collapse",
