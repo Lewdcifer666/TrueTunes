@@ -1,5 +1,24 @@
 {
-  "version": "2025-11-09T06:22:48.441Z",
-  "updated": "2025-11-09T06:22:48.441Z",
-  "artists": []
+  "version": "2025-11-09T07:53:34.602Z",
+  "updated": "2025-11-09T07:53:34.602Z",
+  "artists": [
+    {
+      "id": "spotify:5dt8gRLDwIgSS0uwxvxqqJ",
+      "name": "AngelofAnarchy",
+      "platforms": {
+        "spotify": "5dt8gRLDwIgSS0uwxvxqqJ"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        211
+      ],
+      "added": "2025-11-09T07:53:34.602Z"
+    }
+  ]
 }
