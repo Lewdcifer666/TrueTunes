@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T07:55:50.914Z",
-  "updated": "2025-11-09T07:55:50.914Z",
-  "total": 23,
+  "version": "2025-11-09T08:13:19.164Z",
+  "updated": "2025-11-09T08:13:19.164Z",
+  "total": 24,
   "artists": [
     {
       "id": "test1",
@@ -393,12 +393,12 @@
       "platforms": {
         "spotify": "5dt8gRLDwIgSS0uwxvxqqJ"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T07:55:50.911Z",
       "issueNumbers": [
@@ -413,6 +413,34 @@
         212,
         211
       ]
+    },
+    {
+      "id": "spotify:6bmHwapdVkl8LMts4cKBms",
+      "name": "Velvet Rebellion",
+      "platforms": {
+        "spotify": "6bmHwapdVkl8LMts4cKBms"
+      },
+      "votes": 11,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 11
+      },
+      "issueNumbers": [
+        230,
+        229,
+        228,
+        227,
+        226,
+        225,
+        224,
+        223,
+        222,
+        221,
+        231
+      ],
+      "added": "2025-11-09T08:10:14.006Z"
     }
   ]
 }
