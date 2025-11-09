@@ -1,33 +1,7 @@
 {
-  "version": "2025-11-09T03:59:52.468Z",
-  "updated": "2025-11-09T03:59:52.468Z",
+  "version": "2025-11-09T04:00:48.252Z",
+  "updated": "2025-11-09T04:00:48.252Z",
   "artists": [
-    {
-      "id": "spotify:5L5yD7T9JncTF1bbzCoIQm",
-      "name": "Shadow Beloved",
-      "platforms": {
-        "spotify": "5L5yD7T9JncTF1bbzCoIQm"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        135,
-        175,
-        174,
-        176,
-        177,
-        178,
-        180,
-        179,
-        181
-      ],
-      "added": "2025-11-09T00:46:05.093Z"
-    },
     {
       "id": "spotify:1Q43bUUmvTTVi6Eue5MdJq",
       "name": "The Hollow",
