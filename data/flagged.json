@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T05:36:38.446Z",
-  "updated": "2025-11-09T05:36:38.446Z",
-  "total": 21,
+  "version": "2025-11-09T06:22:48.441Z",
+  "updated": "2025-11-09T06:22:48.441Z",
+  "total": 22,
   "artists": [
     {
       "id": "test1",
@@ -358,6 +358,33 @@
         193,
         192,
         137
+      ]
+    },
+    {
+      "id": "spotify:7hcy1Ea3D4brTD9M1je4LW",
+      "name": "Serinx",
+      "platforms": {
+        "spotify": "7hcy1Ea3D4brTD9M1je4LW"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T06:22:48.437Z",
+      "issueNumbers": [
+        210,
+        209,
+        208,
+        207,
+        206,
+        205,
+        204,
+        203,
+        202,
+        201
       ]
     }
   ]
