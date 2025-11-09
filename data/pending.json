@@ -1,32 +1,5 @@
 {
-  "version": "2025-11-09T05:16:12.402Z",
-  "updated": "2025-11-09T05:16:12.402Z",
-  "artists": [
-    {
-      "id": "spotify:2aS24QHQcFbLYynpaTl3Ia",
-      "name": "Crimson Collapse",
-      "platforms": {
-        "spotify": "2aS24QHQcFbLYynpaTl3Ia"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        137,
-        193,
-        192,
-        194,
-        196,
-        195,
-        198,
-        197,
-        199
-      ],
-      "added": "2025-11-09T01:10:30.736Z"
-    }
-  ]
+  "version": "2025-11-09T05:36:38.446Z",
+  "updated": "2025-11-09T05:36:38.446Z",
+  "artists": []
 }
