@@ -404,6 +404,7 @@ async function main() {
                         votes: totalVotes,
                         reporters: Array.from(data.allReporters),
                         reporterVotes: Object.fromEntries(data.reporterVotes),
+                        issueNumbers: data.openIssues, // Track which issues were counted
                         added: new Date().toISOString()
                     };
 
@@ -507,14 +508,22 @@ async function main() {
                 continue;
             }
             const alreadyFlaggedArtist = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
-
             if (alreadyFlaggedArtist) {
+                // Initialize tracking arrays
+                if (!alreadyFlaggedArtist.issueNumbers) alreadyFlaggedArtist.issueNumbers = [];
+
+                // Check if this issue was already counted in historical check
+                if (alreadyFlaggedArtist.issueNumbers.includes(issue.number)) {
+                    console.log(`⏭️  Skipping #${issue.number}: Already counted in historical check for ${vote.artist}`);
+                    thresholdIssues.push(issue.number); // Still close it
+                    continue;
+                }
+
                 console.log(`✓ Artist already flagged: ${vote.artist} - adding vote from issue #${issue.number}`);
 
-                // Initialize tracking arrays
+                // Initialize tracking
                 if (!alreadyFlaggedArtist.reporterVotes) alreadyFlaggedArtist.reporterVotes = {};
                 if (!alreadyFlaggedArtist.reporters) alreadyFlaggedArtist.reporters = [];
-                if (!alreadyFlaggedArtist.issueNumbers) alreadyFlaggedArtist.issueNumbers = [];
 
                 // Add this reporter's vote
                 const currentVotes = alreadyFlaggedArtist.reporterVotes[vote.reporter] || 0;
