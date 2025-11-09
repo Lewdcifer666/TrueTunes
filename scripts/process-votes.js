@@ -414,9 +414,7 @@ async function main() {
                         a.platforms[data.platform] !== data.id
                     );
 
-                    // Close ALL related issues (open and recently closed that aren't already closed)
-                    const allIssuesToClose = [...data.openIssues];
-                    thresholdIssues.push(...allIssuesToClose);
+
                 }
             }
         }
