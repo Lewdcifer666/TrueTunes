@@ -469,6 +469,13 @@ async function main() {
 
             // ===== CHECK IF ARTIST IS ALREADY FLAGGED =====
             const artistKey = `${vote.platform}:${vote.id}`;
+
+            // Skip if artist was JUST flagged in this run (votes already counted)
+            if (newlyFlaggedIds.has(vote.id)) {
+                console.log(`⏭️  Skipping #${issue.number}: ${vote.artist} was flagged in this run (votes already counted)`);
+                thresholdIssues.push(issue.number);
+                continue;
+            }
             const alreadyFlaggedArtist = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
 
             if (alreadyFlaggedArtist) {
@@ -691,6 +698,7 @@ async function main() {
 
         const now = new Date().toISOString();
         let newlyFlagged = 0;
+        const newlyFlaggedIds = new Set(); // Track artists flagged in THIS run
 
         pending.artists = pending.artists.filter(artist => {
             // FIXED: Calculate total votes using helper function that handles both Maps and Objects
@@ -703,9 +711,14 @@ async function main() {
                 if (!artist.issueNumbers) {
                     artist.issueNumbers = [];
                 }
+
                 newlyFlagged++;
                 console.log(`\n🚩 FLAGGED: ${artist.name}`);
                 console.log(`   Final vote count: ${artist.votes}`);
+
+                // Track this artist as newly flagged
+                const artistId = Object.values(artist.platforms)[0];
+                newlyFlaggedIds.add(artistId);
 
                 const artistKey = artist.id;
                 if (artistVotes.has(artistKey)) {
