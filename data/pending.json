@@ -1,25 +1,7 @@
 {
-  "version": "2025-11-09T02:16:21.836Z",
-  "updated": "2025-11-09T02:16:21.836Z",
+  "version": "2025-11-09T02:56:21.319Z",
+  "updated": "2025-11-09T02:56:21.319Z",
   "artists": [
-    {
-      "id": "spotify:3WPTsMdNZY3cEeWUcKrkpt",
-      "name": "Kiyo",
-      "platforms": {
-        "spotify": "3WPTsMdNZY3cEeWUcKrkpt"
-      },
-      "votes": 1,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 1
-      },
-      "issueNumbers": [
-        95
-      ],
-      "added": "2025-10-31T20:16:28.094Z"
-    },
     {
       "id": "spotify:5COVZd3zir997pQ2dDNMnJ",
       "name": "Dark Noir",
