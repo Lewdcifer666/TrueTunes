@@ -454,6 +454,40 @@ async function main() {
                 continue;
             }
 
+            // ===== CHECK IF ARTIST IS ALREADY FLAGGED =====
+            const artistKey = `${vote.platform}:${vote.id}`;
+            const alreadyFlagged = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
+
+            if (alreadyFlagged) {
+                console.log(`✓ Artist already flagged: ${vote.artist}`);
+
+                // Update vote count in flagged artist
+                if (!alreadyFlagged.reporterVotes) {
+                    alreadyFlagged.reporterVotes = {};
+                }
+                if (!alreadyFlagged.reporters) {
+                    alreadyFlagged.reporters = [];
+                }
+
+                // Add this reporter's vote
+                const currentVotes = alreadyFlagged.reporterVotes[vote.reporter] || 0;
+                alreadyFlagged.reporterVotes[vote.reporter] = currentVotes + 1;
+
+                if (!alreadyFlagged.reporters.includes(vote.reporter)) {
+                    alreadyFlagged.reporters.push(vote.reporter);
+                }
+
+                // Recalculate total
+                alreadyFlagged.votes = calculateTotalVotes(alreadyFlagged.reporterVotes);
+
+                console.log(`   Updated votes: ${alreadyFlagged.votes} (${vote.reporter}: +1)`);
+
+                // Close this issue with informative comment
+                thresholdIssues.push(issue.number);
+
+                continue; // Skip further processing
+            }
+
             if (!ADMIN_USERS.includes(vote.reporter)) {
                 const userCount = userVoteCount.get(vote.reporter) || 0;
                 if (userCount >= MAX_VOTES_PER_USER) {
