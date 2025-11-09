@@ -844,7 +844,7 @@
                     platform: activity.platform,
                     reporters: [],
                     reporterAvatars: new Map(),
-                    issueNumbers: [],
+                    issueNumbers: activity.issueNumbers || [], // Get the full array
                     states: new Set(),
                     latestTime: activity.createdAt,
                     comments: 0
@@ -858,8 +858,7 @@
                 group.reporters.push(activity.reporter);
                 group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
             }
-
-            group.issueNumbers.push(activity.issueNumber);
+            // Don't push individual issue numbers - we already have the full array
             group.states.add(activity.state);
             group.comments += activity.comments;
 
@@ -1044,7 +1043,7 @@
                     platform: activity.platform,
                     reporters: [],
                     reporterAvatars: new Map(),
-                    issueNumbers: [],
+                    issueNumbers: activity.issueNumbers || [], // Get the full array from the first activity
                     states: new Set(),
                     latestTime: activity.createdAt,
                     comments: 0
@@ -1056,7 +1055,7 @@
                 group.reporters.push(activity.reporter);
                 group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
             }
-            group.issueNumbers.push(activity.issueNumber);
+            // Don't push individual issue numbers - we already have the full array
             group.states.add(activity.state);
             group.comments += activity.comments;
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
