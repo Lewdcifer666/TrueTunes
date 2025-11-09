@@ -2603,6 +2603,89 @@
                 border-color: rgba(100, 100, 100, 0.4);
                 transform: scale(1.05);
             }
+
+            /* Community Feed Sidebar */
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                }
+                to {
+                    transform: translateX(0);
+                }
+            }
+            
+            .truetunes-feed-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                border: 1px solid rgba(126, 34, 206, 0.3);
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 700;
+                transition: all 0.2s;
+                margin: 0 4px;
+                white-space: nowrap;
+                user-select: none;
+                background: rgba(126, 34, 206, 0.1);
+                color: #7e22ce;
+            }
+            
+            .truetunes-feed-toggle:hover {
+                background: rgba(126, 34, 206, 0.2);
+                border-color: #7e22ce;
+                transform: scale(1.05);
+            }
+            
+            .truetunes-feed-sidebar {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            
+            .truetunes-feed-sidebar.detached .truetunes-sidebar-header {
+                border-radius: 12px 12px 0 0;
+            }
+
+            .truetunes-feed-sidebar.docked {
+                resize: horizontal;
+                overflow: hidden;
+                min-width: 300px;
+                max-width: 600px;
+            }
+            
+            .truetunes-feed-sidebar.detached {
+                resize: both;
+                overflow: hidden;
+                min-width: 300px;
+                min-height: 400px;
+            }
+            
+            .truetunes-feed-sidebar::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            .truetunes-feed-sidebar::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            .truetunes-feed-sidebar::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+            }
+            
+            #truetunes-sidebar-content::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            #truetunes-sidebar-content::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            #truetunes-sidebar-content::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+            }
         `;
             document.head.appendChild(style);
         } catch (e) {
@@ -3220,6 +3303,504 @@
         }, 5000); // Changed from 15000 to 5000 (5 seconds instead of 15)
     }
 
+    // ===== COMMUNITY FEED SIDEBAR BUTTON =====
+    let feedSidebarOpen = false;
+    let feedSidebarDetached = false;
+
+    function getCommunityFeedButton() {
+        let btn = document.getElementById('truetunes-feed-toggle');
+
+        if (btn) {
+            return btn;
+        }
+
+        btn = document.createElement('button');
+        btn.id = 'truetunes-feed-toggle';
+        btn.className = 'truetunes-feed-toggle';
+        btn.setAttribute('aria-label', 'Toggle Community Feed');
+        btn.innerHTML = '🌍 Feed';
+        btn.title = 'Show Community Activity Feed';
+
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleCommunityFeedSidebar();
+        });
+
+        return btn;
+    }
+
+    function createCommunityFeedToggle() {
+        const extraControls = document.querySelector('.main-nowPlayingBar-extraControls');
+        if (!extraControls) {
+            setTimeout(createCommunityFeedToggle, 1000);
+            return;
+        }
+
+        const btn = getCommunityFeedButton();
+        if (btn.parentElement) return;
+
+        // Find Skip AI button
+        const skipBtn = document.getElementById('truetunes-skip-toggle');
+        const spicy = extraControls.querySelector('[id^="SpicyLyrics"]');
+
+        if (skipBtn) {
+            // Insert after Skip AI button
+            if (skipBtn.nextSibling) {
+                extraControls.insertBefore(btn, skipBtn.nextSibling);
+            } else {
+                extraControls.appendChild(btn);
+            }
+        } else if (spicy) {
+            // Fallback: insert before Spicy Lyrics
+            extraControls.insertBefore(btn, spicy);
+        } else {
+            // Last resort: append
+            extraControls.appendChild(btn);
+        }
+
+        console.log('[TrueTunes] ✓ Community Feed button created');
+    }
+
+    function toggleCommunityFeedSidebar() {
+        if (feedSidebarOpen) {
+            closeCommunityFeedSidebar();
+        } else {
+            openCommunityFeedSidebar();
+        }
+    }
+
+    function openCommunityFeedSidebar() {
+        if (feedSidebarOpen) return;
+
+        feedSidebarOpen = true;
+        feedSidebarDetached = false;
+
+        const sidebar = createCommunityFeedSidebar();
+        document.body.appendChild(sidebar);
+
+        // Update button
+        const btn = document.getElementById('truetunes-feed-toggle');
+        if (btn) {
+            btn.style.background = 'rgba(126, 34, 206, 0.3)';
+            btn.style.borderColor = '#7e22ce';
+        }
+    }
+
+    function closeCommunityFeedSidebar() {
+        feedSidebarOpen = false;
+        feedSidebarDetached = false;
+
+        const sidebar = document.getElementById('truetunes-feed-sidebar');
+        if (sidebar) {
+            sidebar.remove();
+        }
+
+        // Update button
+        const btn = document.getElementById('truetunes-feed-toggle');
+        if (btn) {
+            btn.style.background = '';
+            btn.style.borderColor = '';
+        }
+    }
+
+    function createSidebarCommunityFeed() {
+        const MIN_VOTES = 10;
+
+        // Group activities by artist
+        const artistGroups = new Map();
+
+        communityFeed.recentActivity.forEach(activity => {
+            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+            if (!normalizedId) return;
+
+            if (!artistGroups.has(normalizedId)) {
+                artistGroups.set(normalizedId, {
+                    artistId: normalizedId,
+                    artistName: activity.artistName,
+                    platform: activity.platform,
+                    reporters: [],
+                    reporterAvatars: new Map(),
+                    states: new Set(),
+                    latestTime: activity.createdAt,
+                    currentVotes: 0
+                });
+            }
+
+            const group = artistGroups.get(normalizedId);
+            if (!group.reporters.includes(activity.reporter)) {
+                group.reporters.push(activity.reporter);
+                group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
+            }
+            group.states.add(activity.state);
+
+            // Count ONLY open issues as current votes
+            if (activity.state === 'open') {
+                group.currentVotes++;
+            }
+
+            if (new Date(activity.createdAt) > new Date(group.latestTime)) {
+                group.latestTime = activity.createdAt;
+            }
+        });
+
+        // Sort by latest activity
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+        // Display more entries initially for sidebar (20 instead of 10)
+        const displayCount = Math.min(20, groupedActivities.length);
+
+        return `
+            <div style="padding: 16px; display: flex; flex-direction: column; height: 100%;">
+                <!-- Activity Feed -->
+                <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                    ${groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
+            const isOpen = group.states.has('open');
+            const isFlagged = !isOpen && group.currentVotes >= MIN_VOTES;
+            const progressPercent = Math.min((group.currentVotes / MIN_VOTES) * 100, 100);
+
+            return `
+                            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')}; transition: all 0.2s;"
+                                 onmouseover="this.style.background='rgba(255, 255, 255, 0.08)';"
+                                 onmouseout="this.style.background='rgba(255, 255, 255, 0.05)';">
+                                
+                                <!-- Header: Time + Status Badge -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
+                                    <span>${formatTimeAgo(group.latestTime)}</span>
+                                    <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                        ${isOpen ? 'open' : 'closed'}
+                                    </span>
+                                </div>
+                                
+                                <!-- Artist Name -->
+                                <div style="margin-bottom: 8px;">
+                                    <a href="https://open.spotify.com/artist/${group.artistId}" 
+                                       target="_blank"
+                                       style="font-weight: 600; font-size: 14px; color: white; text-decoration: none; transition: color 0.2s;"
+                                       onclick="event.stopPropagation();"
+                                       onmouseover="this.style.color='#7e22ce';"
+                                       onmouseout="this.style.color='white';">
+                                        ${group.artistName}
+                                    </a>
+                                </div>
+                                
+                                <!-- Platform and Vote Count -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+                                    <span style="color: #999;">🎵 ${group.platform}</span>
+                                    ${isOpen ? `
+                                        <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                            ${group.currentVotes}/${MIN_VOTES} Votes
+                                        </span>
+                                    ` : (isFlagged ? `
+                                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                            Flagged
+                                        </span>
+                                    ` : '')}
+                                </div>
+                                
+                                <!-- Reporter Avatars -->
+                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${isOpen ? '8px' : '0'};">
+                                    <div style="display: flex; margin-left: -4px;">
+                                        ${group.reporters.slice(0, 5).map((reporter, idx) => `
+                                            <a href="https://github.com/${reporter}" 
+                                               target="_blank"
+                                               style="margin-left: -4px; z-index: ${5 - idx};"
+                                               title="${reporter}">
+                                                <img src="${group.reporterAvatars.get(reporter)}" 
+                                                     style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #121212;" 
+                                                     alt="${reporter}">
+                                            </a>
+                                        `).join('')}
+                                        ${group.reporters.length > 5 ? `
+                                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); border: 2px solid #121212; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #7e22ce; margin-left: -4px; z-index: 0;">
+                                                +${group.reporters.length - 5}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <span style="font-size: 10px; color: #999;">${group.reporters.length} reporter${group.reporters.length > 1 ? 's' : ''}</span>
+                                </div>
+                                
+                                <!-- Progress Bar (only for open issues) -->
+                                ${isOpen ? `
+                                    <div style="width: 100%; height: 3px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                                        <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+        }).join('') : `
+                        <div style="text-align: center; color: #999; padding: 40px 20px;">
+                            <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                            <p style="font-size: 13px;">No community activity yet</p>
+                        </div>
+                    `}
+                </div>
+                
+                <!-- Auto-Update Notice -->
+                <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; font-size: 10px; color: #60a5fa; text-align: center;">
+                    ⏱️ Auto-updates every 10 minutes
+                </div>
+            </div>
+        `;
+    }
+
+    function createCommunityFeedSidebar() {
+        const sidebar = document.createElement('div');
+        sidebar.id = 'truetunes-feed-sidebar';
+        sidebar.className = 'truetunes-feed-sidebar docked';
+
+        // Sidebar styles
+        sidebar.style.cssText = `
+            position: fixed;
+            right: 0;
+            top: 64px;
+            bottom: 0;
+            width: 400px;
+            background: #121212;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+            animation: slideInRight 0.3s ease;
+        `;
+
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: linear-gradient(135deg, #7e22ce 0%, #db2777 100%);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        `;
+        header.className = 'truetunes-sidebar-header';
+
+        header.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">🌍</span>
+                <h3 style="font-size: 16px; font-weight: 600; color: white; margin: 0;">Community Feed</h3>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="truetunes-sidebar-detach" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;" title="Detach sidebar">
+                    📌
+                </button>
+                <button id="truetunes-sidebar-close" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;" title="Close sidebar">
+                    ✕
+                </button>
+            </div>
+        `;
+
+        // Controls bar
+        const controls = document.createElement('div');
+        controls.style.cssText = `
+            background: #1a1a1a;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        `;
+
+        controls.innerHTML = `
+            <label style="display: flex; align-items: center; gap: 6px; color: white; font-size: 12px; cursor: pointer;">
+                <span style="font-size: 11px; color: #999;">Opacity:</span>
+                <input type="range" id="truetunes-sidebar-opacity" min="10" max="100" value="100" step="1" style="width: 100px;">
+                <span id="truetunes-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+            </label>
+            <div style="flex: 1;"></div>
+            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; margin-left: auto;">
+                🔄 Refresh
+            </button>
+        `;
+
+        // Content container
+        const content = document.createElement('div');
+        content.id = 'truetunes-sidebar-content';
+        content.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            color: white;
+            background: #121212;
+        `;
+
+        // Load community feed content
+        content.innerHTML = createSidebarCommunityFeed();
+
+        sidebar.appendChild(header);
+        sidebar.appendChild(controls);
+        sidebar.appendChild(content);
+
+        // Add event listeners
+        setupSidebarEventListeners(sidebar, header);
+
+        return sidebar;
+    }
+
+    function setupSidebarEventListeners(sidebar, header) {
+        // Close button - use sidebar.querySelector instead of document.getElementById
+        const closeBtn = sidebar.querySelector('#truetunes-sidebar-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                closeCommunityFeedSidebar();
+            });
+        }
+
+        // Detach button
+        const detachBtn = sidebar.querySelector('#truetunes-sidebar-detach');
+        if (detachBtn) {
+            detachBtn.addEventListener('click', () => {
+                if (feedSidebarDetached) {
+                    // Dock it back
+                    sidebar.classList.remove('detached');
+                    sidebar.classList.add('docked');
+                    sidebar.style.cssText = `
+                        position: fixed;
+                        right: 0;
+                        top: 64px;
+                        bottom: 0;
+                        width: 400px;
+                        background: #121212;
+                        border-left: 1px solid rgba(255, 255, 255, 0.1);
+                        z-index: 9998;
+                        display: flex;
+                        flex-direction: column;
+                        opacity: ${sidebar.style.opacity || 1};
+                    `;
+                    feedSidebarDetached = false;
+                    detachBtn.innerHTML = '📌';
+                    detachBtn.title = 'Detach sidebar';
+                } else {
+                    // Detach it
+                    sidebar.classList.remove('docked');
+                    sidebar.classList.add('detached');
+                    sidebar.style.cssText = `
+                        position: fixed;
+                        right: 20px;
+                        top: 80px;
+                        width: 400px;
+                        height: 600px;
+                        background: #121212;
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 12px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+                        z-index: 9998;
+                        display: flex;
+                        flex-direction: column;
+                        opacity: ${sidebar.style.opacity || 1};
+                        resize: both;
+                        overflow: hidden;
+                    `;
+                    feedSidebarDetached = true;
+                    detachBtn.innerHTML = '📍';
+                    detachBtn.title = 'Dock sidebar';
+
+                    // Enable dragging when detached
+                    makeDraggable(sidebar, header);
+                }
+            });
+        }
+
+        // Opacity control
+        const opacitySlider = sidebar.querySelector('#truetunes-sidebar-opacity');
+        const opacityValue = sidebar.querySelector('#truetunes-opacity-value');
+
+        if (opacitySlider && opacityValue) {
+            // Set initial opacity to 100%
+            sidebar.style.opacity = '1';
+            opacityValue.textContent = '100%';
+
+            opacitySlider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                sidebar.style.opacity = (value / 100).toString();
+                opacityValue.textContent = `${value}%`;
+            });
+        }
+
+        // Refresh button
+        const refreshBtn = sidebar.querySelector('#truetunes-sidebar-refresh');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                refreshBtn.textContent = '⏳ Refreshing...';
+                refreshBtn.disabled = true;
+
+                await fetchCommunityActivity();
+
+                const content = sidebar.querySelector('#truetunes-sidebar-content');
+                if (content) {
+                    content.innerHTML = createCommunityTab();
+
+                    // Reattach scroll listener for lazy loading
+                    const feedContainer = content.querySelector('#community-feed-container');
+                    if (feedContainer) {
+                        feedContainer.addEventListener('scroll', () => {
+                            if (communityView.isUpdating) return;
+
+                            const { scrollTop, scrollHeight, clientHeight } = feedContainer;
+                            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+                                const artistGroups = new Map();
+                                communityFeed.recentActivity.forEach(activity => {
+                                    const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+                                    if (!normalizedId) return;
+                                    if (!artistGroups.has(normalizedId)) {
+                                        artistGroups.set(normalizedId, { latestTime: activity.createdAt });
+                                    }
+                                });
+
+                                const totalGroups = artistGroups.size;
+                                if (communityView.displayedCount < totalGroups) {
+                                    communityView.displayedCount += 10;
+                                    updateCommunityFeedOnly();
+                                }
+                            }
+                        });
+                    }
+                }
+
+                refreshBtn.textContent = '🔄 Refresh';
+                refreshBtn.disabled = false;
+                Spicetify.showNotification('✓ Community feed refreshed', false, 2000);
+            });
+        }
+    }
+
+    function makeDraggable(element, handle) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+        handle.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            if (!feedSidebarDetached) return;
+
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+            handle.style.cursor = 'grabbing';
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+
+            element.style.top = (element.offsetTop - pos2) + 'px';
+            element.style.left = (element.offsetLeft - pos1) + 'px';
+            element.style.right = 'auto';
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+            handle.style.cursor = 'move';
+        }
+    }
+
     function addAIBadgeToRow(row, artist) {
         try {
             if (row.querySelector('.truetunes-badge')) return;
@@ -3326,6 +3907,7 @@
             watchPlaylistChanges();
             watchForArtistPages();
             watchNowPlayingBar();
+            createCommunityFeedToggle();
 
             setInterval(() => loadFlaggedList(), 60 * 1000); // Check every 60 seconds instead of 6 hours
 
