@@ -46,7 +46,13 @@
         "spotify": "07XIuuPrpw0kcGrJApsbQp"
       },
       "votes": 10,
-      "added": "2025-10-19T16:58:02.118Z"
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "added": "2025-10-19T16:58:02.118Z",
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      }
     },
     {
       "id": "spotify:3E8vJy6ND5emzVHCGlyHp4",
