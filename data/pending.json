@@ -1,25 +1,7 @@
 {
-  "version": "2025-11-09T03:03:41.404Z",
-  "updated": "2025-11-09T03:03:41.404Z",
+  "version": "2025-11-09T03:47:39.552Z",
+  "updated": "2025-11-09T03:47:39.552Z",
   "artists": [
-    {
-      "id": "spotify:1s7brFQBWfA9z2YR7bl9nh",
-      "name": "Bad Apples",
-      "platforms": {
-        "spotify": "1s7brFQBWfA9z2YR7bl9nh"
-      },
-      "votes": 1,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 1
-      },
-      "issueNumbers": [
-        134
-      ],
-      "added": "2025-11-04T23:24:12.920Z"
-    },
     {
       "id": "spotify:5L5yD7T9JncTF1bbzCoIQm",
       "name": "Shadow Beloved",
