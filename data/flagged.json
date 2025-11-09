@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T06:22:48.441Z",
-  "updated": "2025-11-09T06:22:48.441Z",
-  "total": 22,
+  "version": "2025-11-09T07:55:50.914Z",
+  "updated": "2025-11-09T07:55:50.914Z",
+  "total": 23,
   "artists": [
     {
       "id": "test1",
@@ -339,12 +339,12 @@
       "platforms": {
         "spotify": "2aS24QHQcFbLYynpaTl3Ia"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T05:36:38.442Z",
       "issueNumbers": [
@@ -366,12 +366,12 @@
       "platforms": {
         "spotify": "7hcy1Ea3D4brTD9M1je4LW"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T06:22:48.437Z",
       "issueNumbers": [
@@ -385,6 +385,33 @@
         203,
         202,
         201
+      ]
+    },
+    {
+      "id": "spotify:5dt8gRLDwIgSS0uwxvxqqJ",
+      "name": "AngelofAnarchy",
+      "platforms": {
+        "spotify": "5dt8gRLDwIgSS0uwxvxqqJ"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T07:55:50.911Z",
+      "issueNumbers": [
+        220,
+        219,
+        218,
+        217,
+        216,
+        215,
+        214,
+        213,
+        212,
+        211
       ]
     }
   ]
