@@ -836,9 +836,13 @@ async function main() {
         console.log('Closing issues...');
         console.log('='.repeat(60));
 
+        // CRITICAL: Deduplicate thresholdIssues before processing
+        const uniqueThresholdIssues = [...new Set(thresholdIssues)];
+        console.log(`\n🔍 DEBUG: thresholdIssues had ${thresholdIssues.length} total, ${uniqueThresholdIssues.length} unique`);
+
         // Group threshold issues by artist for better comments
         const issuesByArtist = new Map();
-        for (const issueNumber of thresholdIssues) {
+        for (const issueNumber of uniqueThresholdIssues) {
             // Find which artist this issue belongs to
             const issue = issues.find(i => i.number === issueNumber);
             if (issue) {
