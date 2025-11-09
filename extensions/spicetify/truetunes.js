@@ -56,7 +56,8 @@
 
     let communityView = {
         displayedCount: 10,
-        loadMoreStep: 10
+        loadMoreStep: 10,
+        isUpdating: false
     };
 
     // ===== DEBOUNCING & STATE MANAGEMENT =====
@@ -532,8 +533,10 @@
             console.log(`[TrueTunes] Loaded ${communityFeed.recentActivity.length} activity entries`);
             console.log(`[TrueTunes] Pending: ${pending.artists.length}, Flagged: ${flagged.artists.length}`);
 
-            if (currentTab === 'community') {
+            if (currentTab === 'community' && !communityView.isUpdating) {
                 renderTrueTunesPanel();
+            } else if (communityView.isUpdating) {
+                updateCommunityFeedOnly();
             }
         } catch (error) {
             console.error('[TrueTunes] Error fetching community activity:', error);
@@ -547,8 +550,25 @@
             clearInterval(communityFeed.updateTimer);
         }
 
-        communityFeed.updateTimer = setInterval(() => {
-            fetchCommunityActivity();
+        communityFeed.updateTimer = setInterval(async () => {
+            if (currentTab === 'community') {
+                const feedContainer = document.getElementById('community-feed-container');
+                const savedScrollTop = feedContainer ? feedContainer.scrollTop : 0;
+                const savedDisplayCount = communityView.displayedCount;
+
+                communityView.isUpdating = true;
+                await fetchCommunityActivity();
+
+                // Preserve display count if user scrolled down
+                if (savedScrollTop < 500) {
+                    communityView.displayedCount = 10;
+                } else {
+                    communityView.displayedCount = savedDisplayCount;
+                }
+
+                updateCommunityFeedOnly();
+                communityView.isUpdating = false;
+            }
         }, 10 * 60 * 1000);
     }
 
@@ -1025,6 +1045,9 @@
 
         if (!feedContainer) return;
 
+        // Temporarily disable scroll events during update
+        communityView.isUpdating = true;
+
         // Save scroll position
         const savedScrollTop = feedContainer.scrollTop;
 
@@ -1181,8 +1204,14 @@
             }
         }
 
-        // Restore scroll position
-        feedContainer.scrollTop = savedScrollTop;
+        // Restore scroll position using requestAnimationFrame for smooth restoration
+        requestAnimationFrame(() => {
+            feedContainer.scrollTop = savedScrollTop;
+            // Re-enable scroll events after restoration
+            requestAnimationFrame(() => {
+                communityView.isUpdating = false;
+            });
+        });
     }
 
     function createStatsTab() {
@@ -1653,12 +1682,28 @@
         } else if (currentTab === 'community') {
             document.getElementById('truetunes-refresh-community')?.addEventListener('click', async () => {
                 const btn = document.getElementById('truetunes-refresh-community');
+                const feedContainer = document.getElementById('community-feed-container');
+                const savedScrollTop = feedContainer ? feedContainer.scrollTop : 0;
+                const savedDisplayCount = communityView.displayedCount;
+
                 if (btn) {
                     btn.textContent = '⏳ Refreshing...';
                     btn.disabled = true;
                 }
+
+                communityView.isUpdating = true;
                 await fetchCommunityActivity();
-                communityView.displayedCount = 10; // Reset to show first page
+
+                // Only reset if near top, otherwise preserve
+                if (savedScrollTop < 500) {
+                    communityView.displayedCount = 10;
+                } else {
+                    communityView.displayedCount = savedDisplayCount;
+                }
+
+                updateCommunityFeedOnly();
+                communityView.isUpdating = false;
+
                 if (btn) {
                     btn.textContent = '🔄 Refresh';
                     btn.disabled = false;
@@ -1676,6 +1721,9 @@
                 console.log('[TrueTunes Community] Attached scroll listener');
 
                 feedContainer.addEventListener('scroll', () => {
+                    // Skip if currently updating
+                    if (communityView.isUpdating) return;
+
                     const { scrollTop, scrollHeight, clientHeight } = feedContainer;
 
                     console.log('[TrueTunes Community] Scroll event:', {
