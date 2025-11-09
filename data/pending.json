@@ -1,6 +1,6 @@
 {
-  "version": "2025-11-08T23:50:24.774Z",
-  "updated": "2025-11-08T23:50:24.774Z",
+  "version": "2025-11-09T00:46:05.094Z",
+  "updated": "2025-11-09T00:46:05.094Z",
   "artists": [
     {
       "id": "spotify:5GhrfzEjXYGDqEnnM1IahS",
@@ -73,6 +73,24 @@
         134
       ],
       "added": "2025-11-04T23:24:12.920Z"
+    },
+    {
+      "id": "spotify:5L5yD7T9JncTF1bbzCoIQm",
+      "name": "Shadow Beloved",
+      "platforms": {
+        "spotify": "5L5yD7T9JncTF1bbzCoIQm"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        135
+      ],
+      "added": "2025-11-09T00:46:05.093Z"
     }
   ]
 }
