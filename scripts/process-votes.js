@@ -902,15 +902,6 @@ async function main() {
             }
         }
 
-        for (const issueNumber of thresholdIssues) {
-            try {
-                await closeIssue(issueNumber, 'completed');
-                console.log(`✓ Closed #${issueNumber}: Artist flagged`);
-            } catch (e) {
-                console.error(`✗ Failed to close #${issueNumber}:`, e.message);
-            }
-        }
-
         console.log('\n' + '='.repeat(60));
         console.log('✅ Processing complete!');
         console.log('='.repeat(60));
