@@ -3449,28 +3449,42 @@
                     artistId: normalizedId,
                     artistName: activity.artistName,
                     platform: activity.platform,
-                    reporters: [],
                     states: new Set(),
                     latestTime: activity.createdAt,
-                    currentVotes: 0,
-                    totalVotes: 0
+                    voteCount: 0
                 });
             }
 
             const group = artistGroups.get(normalizedId);
-            if (!group.reporters.includes(activity.reporter)) {
-                group.reporters.push(activity.reporter);
-            }
             group.states.add(activity.state);
-
-            // Count votes: open issues = current votes, all = total votes
-            if (activity.state === 'open') {
-                group.currentVotes++;
-            }
-            group.totalVotes++;
 
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
                 group.latestTime = activity.createdAt;
+            }
+        });
+
+        // Get actual vote counts from flagged/pending data
+        artistGroups.forEach((group, artistId) => {
+            const isOpen = group.states.has('open');
+
+            if (isOpen) {
+                // For open issues, count from communityFeed activities with state 'open'
+                group.voteCount = communityFeed.recentActivity.filter(a => {
+                    const id = a.artistId?.replace(/^spotify:/, '');
+                    return id === artistId && a.state === 'open';
+                }).length;
+            } else {
+                // For closed issues, get vote count from flaggedArtists Map
+                const flaggedData = flaggedArtists.get(artistId);
+                if (flaggedData) {
+                    group.voteCount = flaggedData.votes || 0;
+                } else {
+                    // Fallback: count all activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId;
+                    }).length;
+                }
             }
         });
 
@@ -3487,8 +3501,8 @@
                 <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
                     ${groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
             const isOpen = group.states.has('open');
-            const isFlagged = !isOpen && group.currentVotes >= MIN_VOTES;
-            const progressPercent = Math.min((group.currentVotes / MIN_VOTES) * 100, 100);
+            const isFlagged = !isOpen && group.voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((group.voteCount / MIN_VOTES) * 100, 100);
 
             return `
                             <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')}; transition: all 0.2s;"
@@ -3520,11 +3534,11 @@
                                     <span style="color: #999;">🎵 ${group.platform}</span>
                                     ${isOpen ? `
                                         <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                            ${group.currentVotes}/${MIN_VOTES} Votes
+                                            ${group.voteCount}/${MIN_VOTES} Votes
                                         </span>
                                     ` : `
                                         <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                            ${group.totalVotes} Vote${group.totalVotes !== 1 ? 's' : ''}
+                                            ${group.voteCount} Vote${group.voteCount !== 1 ? 's' : ''}
                                         </span>
                                     `}
                                 </div>
@@ -3713,7 +3727,7 @@
                         z-index: 9998;
                         display: flex;
                         flex-direction: column;
-                        opacity: ${sidebar.style.opacity || 1};
+                        opacity: 1;
                     `;
                     feedSidebarDetached = false;
                     detachBtn.innerHTML = '📌';
@@ -3735,7 +3749,7 @@
                         z-index: 9998;
                         display: flex;
                         flex-direction: column;
-                        opacity: ${sidebar.style.opacity || 1};
+                        opacity: 1;
                         resize: both;
                         overflow: hidden;
                     `;
