@@ -538,6 +538,9 @@
             } else if (communityView.isUpdating) {
                 updateCommunityFeedOnly();
             }
+
+            // Also update sidebar if it's open
+            updateSidebarIfOpen();
         } catch (error) {
             console.error('[TrueTunes] Error fetching community activity:', error);
         }
@@ -568,6 +571,9 @@
 
                 updateCommunityFeedOnly();
                 communityView.isUpdating = false;
+
+                // Also update sidebar if open
+                updateSidebarIfOpen();
             }
         }, 10 * 60 * 1000);
     }
@@ -3498,7 +3504,7 @@
         return `
             <div style="padding: 16px; display: flex; flex-direction: column; height: 100%;">
                 <!-- Activity Feed -->
-                <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                <div id="sidebar-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
                     ${groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
             const isOpen = group.states.has('open');
             const isFlagged = !isOpen && group.voteCount >= MIN_VOTES;
@@ -3575,6 +3581,148 @@
                 </div>
             </div>
         `;
+    }
+
+    function updateSidebarFeedOnly() {
+        const feedContainer = document.getElementById('sidebar-feed-container');
+        if (!feedContainer) return;
+
+        // Save scroll position
+        const savedScrollTop = feedContainer.scrollTop;
+
+        const MIN_VOTES = 10;
+
+        // Group activities by artist
+        const artistGroups = new Map();
+
+        communityFeed.recentActivity.forEach(activity => {
+            const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+            if (!normalizedId) return;
+
+            if (!artistGroups.has(normalizedId)) {
+                artistGroups.set(normalizedId, {
+                    artistId: normalizedId,
+                    artistName: activity.artistName,
+                    platform: activity.platform,
+                    states: new Set(),
+                    latestTime: activity.createdAt,
+                    voteCount: 0
+                });
+            }
+
+            const group = artistGroups.get(normalizedId);
+            group.states.add(activity.state);
+
+            if (new Date(activity.createdAt) > new Date(group.latestTime)) {
+                group.latestTime = activity.createdAt;
+            }
+        });
+
+        // Get actual vote counts
+        artistGroups.forEach((group, artistId) => {
+            const isOpen = group.states.has('open');
+
+            if (isOpen) {
+                group.voteCount = communityFeed.recentActivity.filter(a => {
+                    const id = a.artistId?.replace(/^spotify:/, '');
+                    return id === artistId && a.state === 'open';
+                }).length;
+            } else {
+                const flaggedData = flaggedArtists.get(artistId);
+                if (flaggedData) {
+                    group.voteCount = flaggedData.votes || 0;
+                } else {
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId;
+                    }).length;
+                }
+            }
+        });
+
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+        const displayCount = Math.min(20, groupedActivities.length);
+
+        // Update feed HTML
+        feedContainer.innerHTML = groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
+            const isOpen = group.states.has('open');
+            const isFlagged = !isOpen && group.voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((group.voteCount / MIN_VOTES) * 100, 100);
+
+            return `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')}; transition: all 0.2s;"
+                     onmouseover="this.style.background='rgba(255, 255, 255, 0.08)';"
+                     onmouseout="this.style.background='rgba(255, 255, 255, 0.05)';">
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
+                        <span>${formatTimeAgo(group.latestTime)}</span>
+                        ${isOpen ? `
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                open
+                            </span>
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                flagged
+                            </span>
+                        ` : `
+                            <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 8px; border-radius: 10px; font-weight: 700;">
+                                closed
+                            </span>
+                        `)}
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <a href="https://open.spotify.com/artist/${group.artistId}" 
+                           target="_blank"
+                           style="font-weight: 600; font-size: 14px; color: white; text-decoration: none; transition: color 0.2s;"
+                           onclick="event.stopPropagation();"
+                           onmouseover="this.style.color='#7e22ce';"
+                           onmouseout="this.style.color='white';">
+                            ${group.artistName}
+                        </a>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
+                        <span style="color: #999;">🎵 ${group.platform}</span>
+                        ${isOpen ? `
+                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                ${group.voteCount}/${MIN_VOTES} Votes
+                            </span>
+                        ` : `
+                            <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                ${group.voteCount} Vote${group.voteCount !== 1 ? 's' : ''}
+                            </span>
+                        `}
+                    </div>
+                    
+                    ${isOpen ? `
+                        <div style="width: 100%; height: 3px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                            <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('') : `
+            <div style="text-align: center; color: #999; padding: 40px 20px;">
+                <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                <p style="font-size: 13px;">No community activity yet</p>
+            </div>
+        `;
+
+        // Restore scroll position
+        setTimeout(() => {
+            feedContainer.scrollTop = savedScrollTop;
+        }, 0);
+    }
+
+    function updateSidebarIfOpen() {
+        // Check if sidebar is currently open
+        const sidebar = document.getElementById('truetunes-feed-sidebar');
+        if (sidebar && feedSidebarOpen) {
+            updateSidebarFeedOnly();
+        }
     }
 
     function makeResizableFromLeft(sidebar) {
@@ -3778,10 +3926,8 @@
 
                 const content = sidebar.querySelector('#truetunes-sidebar-content');
                 if (content) {
-                    content.innerHTML = createSidebarCommunityFeed();
-
-                    // Reattach scroll listener for lazy loading
-                    const feedContainer = content.querySelector('#community-feed-container');
+                    // Don't recreate, just update the feed
+                    updateSidebarFeedOnly();
                     if (feedContainer) {
                         feedContainer.addEventListener('scroll', () => {
                             if (communityView.isUpdating) return;
