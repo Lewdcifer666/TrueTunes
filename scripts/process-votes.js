@@ -450,6 +450,13 @@ async function main() {
                 continue;
             }
 
+            // ===== NEW: Check if issue already counted in pending.json =====
+            const alreadyPending = pending.artists.find(a => a.platforms[vote.platform] === vote.id);
+            if (alreadyPending?.issueNumbers?.includes(issue.number)) {
+                console.log(`⏭️  Skipping #${issue.number}: Already counted in pending.json for ${vote.artist}`);
+                continue;
+            }
+
             console.log(`📋 Processing Issue #${issue.number}`);
             console.log(`   Artist: ${vote.artist}`);
             console.log(`   Reporter: ${vote.reporter}`);
