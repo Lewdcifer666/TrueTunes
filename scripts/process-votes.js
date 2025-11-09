@@ -329,6 +329,11 @@ async function main() {
         const pending = JSON.parse(fs.readFileSync('data/pending.json', 'utf8'));
         const stats = JSON.parse(fs.readFileSync('data/stats.json', 'utf8'));
 
+        // Snapshot flagged artists at START of run to prevent double-counting
+        const preFlaggedArtistIds = new Set(
+            flagged.artists.map(a => Object.values(a.platforms)[0])
+        );
+
         // CRITICAL: Declare these arrays BEFORE historical check uses them
         const artistVotes = new Map();
         const invalidIssues = [];
@@ -459,9 +464,21 @@ async function main() {
             const alreadyFlagged = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
 
             if (alreadyFlagged) {
-                console.log(`✓ Artist already flagged: ${vote.artist}`);
+                // Initialize issueNumbers array if it doesn't exist
+                if (!alreadyFlagged.issueNumbers) {
+                    alreadyFlagged.issueNumbers = [];
+                }
 
-                // Update vote count in flagged artist
+                // Check if this specific issue was already counted
+                if (alreadyFlagged.issueNumbers.includes(issue.number)) {
+                    console.log(`⏭️  Skipped: Issue #${issue.number} already counted for ${vote.artist}`);
+                    thresholdIssues.push(issue.number); // Still close it
+                    continue;
+                }
+
+                console.log(`✓ Artist already flagged: ${vote.artist} - adding vote from issue #${issue.number}`);
+
+                // Update vote count
                 if (!alreadyFlagged.reporterVotes) {
                     alreadyFlagged.reporterVotes = {};
                 }
@@ -477,12 +494,16 @@ async function main() {
                     alreadyFlagged.reporters.push(vote.reporter);
                 }
 
+                // Add issue number to prevent re-counting
+                alreadyFlagged.issueNumbers.push(issue.number);
+
                 // Recalculate total
                 alreadyFlagged.votes = calculateTotalVotes(alreadyFlagged.reporterVotes);
 
                 console.log(`   Updated votes: ${alreadyFlagged.votes} (${vote.reporter}: +1)`);
+                console.log(`   Tracked issues: ${alreadyFlagged.issueNumbers.join(', ')}`);
 
-                // Close this issue with informative comment
+                // Close this issue
                 thresholdIssues.push(issue.number);
 
                 continue; // Skip further processing
@@ -684,7 +705,11 @@ async function main() {
 
             if (totalVotes >= MIN_VOTES) {
                 artist.votes = totalVotes; // Update with calculated total
-                flagged.artists.push(artist);
+
+                // Ensure issueNumbers is included when moving to flagged
+                if (!artist.issueNumbers) {
+                    artist.issueNumbers = [];
+                }
                 newlyFlagged++;
                 console.log(`\n🚩 FLAGGED: ${artist.name}`);
                 console.log(`   Final vote count: ${artist.votes}`);
