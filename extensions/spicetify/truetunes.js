@@ -1235,13 +1235,33 @@
         // Calculate vote progress for open issues only
         let voteProgressHTML = '';
         if (state === 'open') {
-            const pending = window.trueTunesPending?.get(vote.artistId);
-            const currentVotes = pending ? pending.votes : 1;
-            const MIN_VOTES = 10;
+            let totalVotes = 1; // Minimum: user's own vote
 
+            // PRIORITY 1: Check pending.json (most accurate)
+            const pending = window.trueTunesPending?.get(vote.artistId);
+            if (pending) {
+                totalVotes = pending.votes;
+            } else {
+                // PRIORITY 2: Check community feed for real-time count
+                const communityActivities = communityFeed.recentActivity.filter(activity => {
+                    const normalizedId = activity.artistId?.replace(/^spotify:/, '');
+                    return normalizedId === vote.artistId && activity.state === 'open';
+                });
+
+                if (communityActivities.length > 0) {
+                    // Count unique reporters across all open issues for this artist
+                    const uniqueReporters = new Set();
+                    communityActivities.forEach(activity => {
+                        uniqueReporters.add(activity.reporter);
+                    });
+                    totalVotes = uniqueReporters.size;
+                }
+            }
+
+            const MIN_VOTES = 10;
             voteProgressHTML = `
             <span style="margin: 0 6px;">•</span>
-            <span style="color: #7e22ce; font-weight: 600;">${currentVotes}/${MIN_VOTES} votes</span>
+            <span style="color: #7e22ce; font-weight: 600;">${totalVotes}/${MIN_VOTES} votes</span>
         `;
         }
 
