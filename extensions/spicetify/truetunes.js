@@ -2420,9 +2420,54 @@
                     return; // Silent return
                 }
 
-                // Skip if we just processed this artist
-                if (lastProcessedArtistId === artistId) {
-                    return;
+                // CRITICAL: Wait for valid artist name to load before adding button
+                if (!artistName ||
+                    artistName === "Unknown Artist" ||
+                    artistName === "Spotify" ||
+                    artistName.length < 1) {
+                    return; // Page not fully loaded yet, retry on next interval
+                }
+
+                // CRITICAL: Pre-check that action bar exists BEFORE processing
+                // Try all strategies to find action bar
+                let actionBarPreCheck = document.querySelector('.main-actionBar-ActionBarRow') ||
+                    document.querySelector('.main-entityHeader-actionBar') ||
+                    document.querySelector('[data-testid="entity-header"] [class*="ActionBar"]') ||
+                    document.querySelector('[class*="ActionBarRow"]');
+
+                // If no action bar found, try finding by Play button container
+                if (!actionBarPreCheck) {
+                    const playButton = document.querySelector('[data-testid="play-button"]');
+                    if (playButton) {
+                        let parent = playButton.parentElement;
+                        let attempts = 0;
+                        while (parent && attempts < 5) {
+                            const buttons = parent.querySelectorAll('button');
+                            if (buttons.length >= 2) {
+                                actionBarPreCheck = parent;
+                                break;
+                            }
+                            parent = parent.parentElement;
+                            attempts++;
+                        }
+                    }
+                }
+
+                // If still no action bar, DOM not ready - retry later
+                if (!actionBarPreCheck) {
+                    console.log('[TrueTunes] Action bar not found yet for', artistName, '- will retry');
+                    return; // Retry on next interval
+                }
+
+                // FIXED: Only skip if button already exists in DOM AND we just processed this artist
+                const buttonCheck = document.querySelector('.truetunes-artist-page-button');
+                if (lastProcessedArtistId === artistId && buttonCheck) {
+                    return; // Button exists, no need to recreate
+                }
+
+                // Reset if button is missing (page re-rendered)
+                if (!buttonCheck) {
+                    lastProcessedArtistId = null;
                 }
 
                 lastProcessedArtistId = artistId;
@@ -2652,8 +2697,8 @@
             }
         }
 
-        // Check every 2 seconds
-        checkInterval = setInterval(checkUrlAndAddButton, 2000);
+        // Check every 1 second
+        checkInterval = setInterval(checkUrlAndAddButton, 1000);
 
         // Also use MutationObserver for faster detection
         const observer = new MutationObserver((mutations) => {
