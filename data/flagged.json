@@ -1,7 +1,7 @@
 {
-  "version": "2025-10-26T17:50:00.498Z",
-  "updated": "2025-10-26T17:50:00.498Z",
-  "total": 10,
+  "version": "2025-11-09T01:24:35.164Z",
+  "updated": "2025-11-09T01:24:35.164Z",
+  "total": 14,
   "artists": [
     {
       "id": "test1",
@@ -122,6 +122,66 @@
       "reporterVotes": {
         "Lewdcifer666": 10
       }
+    },
+    {
+      "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
+      "name": "The Dad Bods Pop Punk",
+      "platforms": {
+        "spotify": "4wVSmEjrheqRkOI4po2hhj"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:03:30.798Z"
+    },
+    {
+      "id": "spotify:6ydIK3fZelJNbF5KwgZUga",
+      "name": "Obsidian Swing",
+      "platforms": {
+        "spotify": "6ydIK3fZelJNbF5KwgZUga"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:16:12.980Z"
+    },
+    {
+      "id": "spotify:1MSx7eCIGLByF6My5VMgrH",
+      "name": "Ghost//Signal",
+      "platforms": {
+        "spotify": "1MSx7eCIGLByF6My5VMgrH"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "added": "2025-10-31T21:28:39.452Z"
+    },
+    {
+      "id": "spotify:7uFJ92LH32VSDrBzMTsKWi",
+      "name": "Future K1d",
+      "platforms": {
+        "spotify": "7uFJ92LH32VSDrBzMTsKWi"
+      },
+      "votes": 11,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 11
+      },
+      "added": "2025-10-31T21:33:27.126Z"
     }
   ]
 }

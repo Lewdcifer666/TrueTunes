@@ -1,51 +1,132 @@
 {
-  "version": "2025-10-26T17:50:00.498Z",
-  "updated": "2025-10-26T17:50:00.498Z",
+  "version": "2025-11-09T01:24:35.164Z",
+  "updated": "2025-11-09T01:24:35.164Z",
   "artists": [
     {
-      "id": "spotify:4wVSmEjrheqRkOI4po2hhj",
-      "name": "The Dad Bods Pop Punk",
+      "id": "spotify:5GhrfzEjXYGDqEnnM1IahS",
+      "name": "Crimson Vale",
       "platforms": {
-        "spotify": "4wVSmEjrheqRkOI4po2hhj"
+        "spotify": "5GhrfzEjXYGDqEnnM1IahS"
       },
-      "votes": 8,
+      "votes": 1,
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-23T21:12:49.888Z",
       "reporterVotes": {
-        "Lewdcifer666": 8
-      }
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        93
+      ],
+      "added": "2025-10-29T21:44:07.721Z"
     },
     {
-      "id": "spotify:6ydIK3fZelJNbF5KwgZUga",
-      "name": "Obsidian Swing",
+      "id": "spotify:3WPTsMdNZY3cEeWUcKrkpt",
+      "name": "Kiyo",
       "platforms": {
-        "spotify": "6ydIK3fZelJNbF5KwgZUga"
+        "spotify": "3WPTsMdNZY3cEeWUcKrkpt"
       },
-      "votes": 8,
+      "votes": 1,
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-24T19:19:36.320Z",
       "reporterVotes": {
-        "Lewdcifer666": 8
-      }
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        95
+      ],
+      "added": "2025-10-31T20:16:28.094Z"
     },
     {
-      "id": "spotify:1MSx7eCIGLByF6My5VMgrH",
-      "name": "Ghost//Signal",
+      "id": "spotify:5COVZd3zir997pQ2dDNMnJ",
+      "name": "Dark Noir",
       "platforms": {
-        "spotify": "1MSx7eCIGLByF6My5VMgrH"
+        "spotify": "5COVZd3zir997pQ2dDNMnJ"
       },
-      "votes": 8,
+      "votes": 1,
       "reporters": [
         "Lewdcifer666"
       ],
-      "added": "2025-10-24T19:34:24.898Z",
       "reporterVotes": {
-        "Lewdcifer666": 8
-      }
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        96
+      ],
+      "added": "2025-10-31T20:21:53.055Z"
+    },
+    {
+      "id": "spotify:1s7brFQBWfA9z2YR7bl9nh",
+      "name": "Bad Apples",
+      "platforms": {
+        "spotify": "1s7brFQBWfA9z2YR7bl9nh"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        134
+      ],
+      "added": "2025-11-04T23:24:12.920Z"
+    },
+    {
+      "id": "spotify:5L5yD7T9JncTF1bbzCoIQm",
+      "name": "Shadow Beloved",
+      "platforms": {
+        "spotify": "5L5yD7T9JncTF1bbzCoIQm"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        135
+      ],
+      "added": "2025-11-09T00:46:05.093Z"
+    },
+    {
+      "id": "spotify:1Q43bUUmvTTVi6Eue5MdJq",
+      "name": "The Hollow",
+      "platforms": {
+        "spotify": "1Q43bUUmvTTVi6Eue5MdJq"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        136
+      ],
+      "added": "2025-11-09T00:50:10.761Z"
+    },
+    {
+      "id": "spotify:2aS24QHQcFbLYynpaTl3Ia",
+      "name": "Crimson Collapse",
+      "platforms": {
+        "spotify": "2aS24QHQcFbLYynpaTl3Ia"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        137
+      ],
+      "added": "2025-11-09T01:10:30.736Z"
     }
   ]
 }
