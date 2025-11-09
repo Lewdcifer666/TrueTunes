@@ -442,10 +442,33 @@ async function main() {
                 continue;
             }
 
+            // ===== DEBUG: Show what we're checking =====
+            console.log(`\n🔍 DEBUG - Issue #${issue.number} for ${vote.artist}`);
+
+            // Check flagged.json
+            const flaggedArtist = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
+            if (flaggedArtist) {
+                console.log(`   Flagged.json has this artist`);
+                console.log(`   Flagged issueNumbers: ${JSON.stringify(flaggedArtist.issueNumbers || [])}`);
+                console.log(`   Is #${issue.number} in flaggedIssues? ${flaggedArtist.issueNumbers?.includes(issue.number)}`);
+            } else {
+                console.log(`   Not in flagged.json`);
+            }
+
+            // Check pending.json
+            const pendingArtist = pending.artists.find(a => a.platforms[vote.platform] === vote.id);
+            if (pendingArtist) {
+                console.log(`   Pending.json has this artist`);
+                console.log(`   Pending issueNumbers: ${JSON.stringify(pendingArtist.issueNumbers || [])}`);
+                console.log(`   Is #${issue.number} in pendingIssues? ${pendingArtist.issueNumbers?.includes(issue.number)}`);
+            } else {
+                console.log(`   Not in pending.json`);
+            }
+
             // ===== NEW: Check if issue already counted in flagged.json =====
             const alreadyFlagged = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
             if (alreadyFlagged?.issueNumbers?.includes(issue.number)) {
-                console.log(`⏭️  Skipping #${issue.number}: Already counted in flagged.json for ${vote.artist}`);
+                console.log(`⏭️  SKIPPED: Already counted in flagged.json`);
                 thresholdIssues.push(issue.number); // Auto-close
                 continue;
             }
@@ -453,10 +476,11 @@ async function main() {
             // ===== NEW: Check if issue already counted in pending.json =====
             const alreadyPending = pending.artists.find(a => a.platforms[vote.platform] === vote.id);
             if (alreadyPending?.issueNumbers?.includes(issue.number)) {
-                console.log(`⏭️  Skipping #${issue.number}: Already counted in pending.json for ${vote.artist}`);
+                console.log(`⏭️  SKIPPED: Already counted in pending.json`);
                 continue;
             }
 
+            console.log(`✅ PROCESSING THIS ISSUE`);
             console.log(`📋 Processing Issue #${issue.number}`);
             console.log(`   Artist: ${vote.artist}`);
             console.log(`   Reporter: ${vote.reporter}`);
@@ -592,6 +616,9 @@ async function main() {
         console.log('='.repeat(60));
 
         for (const [key, data] of artistVotes) {
+            console.log(`\n🔍 DEBUG - Processing artistVotes for: ${data.name}`);
+            console.log(`   Issues in artistVotes Map: ${JSON.stringify(data.issueNumbers)}`);
+            console.log(`   ReporterVotes Map: ${JSON.stringify([...data.reporterVotes.entries()])}`);
             // CRITICAL FIX: Skip artists already flagged by historical check
             const alreadyFlagged = flagged.artists.some(a =>
                 a.platforms[data.platform] === data.id
@@ -711,6 +738,11 @@ async function main() {
         pending.artists = pending.artists.filter(artist => {
             // FIXED: Calculate total votes using helper function that handles both Maps and Objects
             const totalVotes = calculateTotalVotes(artist.reporterVotes || {});
+
+            console.log(`\n🔍 DEBUG - Checking threshold for: ${artist.name}`);
+            console.log(`   Total votes: ${totalVotes}`);
+            console.log(`   ReporterVotes: ${JSON.stringify(artist.reporterVotes)}`);
+            console.log(`   IssueNumbers: ${JSON.stringify(artist.issueNumbers || [])}`);
 
             if (totalVotes >= MIN_VOTES) {
                 artist.votes = totalVotes; // Update with calculated total
