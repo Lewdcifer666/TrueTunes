@@ -2648,10 +2648,24 @@
             }
 
             .truetunes-feed-sidebar.docked {
-                resize: horizontal;
-                overflow: hidden;
+                overflow: visible;
                 min-width: 300px;
                 max-width: 600px;
+            }
+            
+            .truetunes-sidebar-resizer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 8px;
+                cursor: ew-resize;
+                background: transparent;
+                z-index: 10;
+            }
+            
+            .truetunes-sidebar-resizer:hover {
+                background: rgba(126, 34, 206, 0.3);
             }
             
             .truetunes-feed-sidebar.detached {
@@ -3303,6 +3317,22 @@
         }, 5000); // Changed from 15000 to 5000 (5 seconds instead of 15)
     }
 
+    // ===== UTILITY FUNCTIONS =====
+
+    function formatTimeAgo(dateString) {
+        const now = new Date();
+        const past = new Date(dateString);
+        const diffMs = now - past;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+    }
+
     // ===== COMMUNITY FEED SIDEBAR BUTTON =====
     let feedSidebarOpen = false;
     let feedSidebarDetached = false;
@@ -3420,24 +3450,24 @@
                     artistName: activity.artistName,
                     platform: activity.platform,
                     reporters: [],
-                    reporterAvatars: new Map(),
                     states: new Set(),
                     latestTime: activity.createdAt,
-                    currentVotes: 0
+                    currentVotes: 0,
+                    totalVotes: 0
                 });
             }
 
             const group = artistGroups.get(normalizedId);
             if (!group.reporters.includes(activity.reporter)) {
                 group.reporters.push(activity.reporter);
-                group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
             }
             group.states.add(activity.state);
 
-            // Count ONLY open issues as current votes
+            // Count votes: open issues = current votes, all = total votes
             if (activity.state === 'open') {
                 group.currentVotes++;
             }
+            group.totalVotes++;
 
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
                 group.latestTime = activity.createdAt;
@@ -3486,39 +3516,17 @@
                                 </div>
                                 
                                 <!-- Platform and Vote Count -->
-                                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
                                     <span style="color: #999;">🎵 ${group.platform}</span>
                                     ${isOpen ? `
                                         <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
                                             ${group.currentVotes}/${MIN_VOTES} Votes
                                         </span>
-                                    ` : (isFlagged ? `
-                                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                            Flagged
+                                    ` : `
+                                        <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                            ${group.totalVotes} Vote${group.totalVotes !== 1 ? 's' : ''}
                                         </span>
-                                    ` : '')}
-                                </div>
-                                
-                                <!-- Reporter Avatars -->
-                                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${isOpen ? '8px' : '0'};">
-                                    <div style="display: flex; margin-left: -4px;">
-                                        ${group.reporters.slice(0, 5).map((reporter, idx) => `
-                                            <a href="https://github.com/${reporter}" 
-                                               target="_blank"
-                                               style="margin-left: -4px; z-index: ${5 - idx};"
-                                               title="${reporter}">
-                                                <img src="${group.reporterAvatars.get(reporter)}" 
-                                                     style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #121212;" 
-                                                     alt="${reporter}">
-                                            </a>
-                                        `).join('')}
-                                        ${group.reporters.length > 5 ? `
-                                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); border: 2px solid #121212; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #7e22ce; margin-left: -4px; z-index: 0;">
-                                                +${group.reporters.length - 5}
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                    <span style="font-size: 10px; color: #999;">${group.reporters.length} reporter${group.reporters.length > 1 ? 's' : ''}</span>
+                                    `}
                                 </div>
                                 
                                 <!-- Progress Bar (only for open issues) -->
@@ -3543,6 +3551,34 @@
                 </div>
             </div>
         `;
+    }
+
+    function makeResizableFromLeft(sidebar) {
+        const resizer = document.createElement('div');
+        resizer.className = 'truetunes-sidebar-resizer';
+        sidebar.appendChild(resizer);
+
+        let startX, startWidth;
+
+        resizer.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startWidth = parseInt(getComputedStyle(sidebar).width, 10);
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
+        });
+
+        function resize(e) {
+            const width = startWidth - (e.clientX - startX);
+            if (width >= 300 && width <= 600) {
+                sidebar.style.width = width + 'px';
+            }
+        }
+
+        function stopResize() {
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
     }
 
     function createCommunityFeedSidebar() {
@@ -3601,6 +3637,13 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            justify-content: flex-end;
+        `;
+
+        controls.innerHTML = `
+            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+                🔄 Refresh
+            </button>
         `;
 
         controls.innerHTML = `
@@ -3632,6 +3675,9 @@
         sidebar.appendChild(header);
         sidebar.appendChild(controls);
         sidebar.appendChild(content);
+
+        // Add resizer for docked mode
+        makeResizableFromLeft(sidebar);
 
         // Add event listeners
         setupSidebarEventListeners(sidebar, header);
@@ -3700,22 +3746,6 @@
                     // Enable dragging when detached
                     makeDraggable(sidebar, header);
                 }
-            });
-        }
-
-        // Opacity control
-        const opacitySlider = sidebar.querySelector('#truetunes-sidebar-opacity');
-        const opacityValue = sidebar.querySelector('#truetunes-opacity-value');
-
-        if (opacitySlider && opacityValue) {
-            // Set initial opacity to 100%
-            sidebar.style.opacity = '1';
-            opacityValue.textContent = '100%';
-
-            opacitySlider.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value);
-                sidebar.style.opacity = (value / 100).toString();
-                opacityValue.textContent = `${value}%`;
             });
         }
 
