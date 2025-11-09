@@ -2,7 +2,7 @@ name: Process Votes
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
   workflow_dispatch:
   schedule:
     # Run every 15 minutes as a backup to catch any missed votes
