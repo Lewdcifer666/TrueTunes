@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T04:50:28.821Z",
-  "updated": "2025-11-09T04:50:28.821Z",
-  "total": 20,
+  "version": "2025-11-09T05:36:38.446Z",
+  "updated": "2025-11-09T05:36:38.446Z",
+  "total": 21,
   "artists": [
     {
       "id": "test1",
@@ -285,12 +285,12 @@
       "platforms": {
         "spotify": "5L5yD7T9JncTF1bbzCoIQm"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T04:00:48.248Z",
       "issueNumbers": [
@@ -312,12 +312,12 @@
       "platforms": {
         "spotify": "1Q43bUUmvTTVi6Eue5MdJq"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T04:43:58.745Z",
       "issueNumbers": [
@@ -331,6 +331,33 @@
         184,
         183,
         136
+      ]
+    },
+    {
+      "id": "spotify:2aS24QHQcFbLYynpaTl3Ia",
+      "name": "Crimson Collapse",
+      "platforms": {
+        "spotify": "2aS24QHQcFbLYynpaTl3Ia"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T05:36:38.442Z",
+      "issueNumbers": [
+        200,
+        199,
+        198,
+        197,
+        196,
+        195,
+        194,
+        193,
+        192,
+        137
       ]
     }
   ]
