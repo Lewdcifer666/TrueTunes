@@ -441,6 +441,14 @@ async function main() {
                 continue;
             }
 
+            // ===== NEW: Check if issue already counted in flagged.json =====
+            const alreadyFlagged = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
+            if (alreadyFlagged?.issueNumbers?.includes(issue.number)) {
+                console.log(`⏭️  Skipping #${issue.number}: Already counted in flagged.json for ${vote.artist}`);
+                thresholdIssues.push(issue.number); // Auto-close
+                continue;
+            }
+
             console.log(`📋 Processing Issue #${issue.number}`);
             console.log(`   Artist: ${vote.artist}`);
             console.log(`   Reporter: ${vote.reporter}`);
@@ -461,47 +469,32 @@ async function main() {
 
             // ===== CHECK IF ARTIST IS ALREADY FLAGGED =====
             const artistKey = `${vote.platform}:${vote.id}`;
-            const alreadyFlagged = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
+            const alreadyFlaggedArtist = flagged.artists.find(a => a.platforms[vote.platform] === vote.id);
 
-            if (alreadyFlagged) {
-                // Initialize issueNumbers array if it doesn't exist
-                if (!alreadyFlagged.issueNumbers) {
-                    alreadyFlagged.issueNumbers = [];
-                }
-
-                // Check if this specific issue was already counted
-                if (alreadyFlagged.issueNumbers.includes(issue.number)) {
-                    console.log(`⏭️  Skipped: Issue #${issue.number} already counted for ${vote.artist}`);
-                    thresholdIssues.push(issue.number); // Still close it
-                    continue;
-                }
-
+            if (alreadyFlaggedArtist) {
                 console.log(`✓ Artist already flagged: ${vote.artist} - adding vote from issue #${issue.number}`);
 
-                // Update vote count
-                if (!alreadyFlagged.reporterVotes) {
-                    alreadyFlagged.reporterVotes = {};
-                }
-                if (!alreadyFlagged.reporters) {
-                    alreadyFlagged.reporters = [];
-                }
+                // Initialize tracking arrays
+                if (!alreadyFlaggedArtist.reporterVotes) alreadyFlaggedArtist.reporterVotes = {};
+                if (!alreadyFlaggedArtist.reporters) alreadyFlaggedArtist.reporters = [];
+                if (!alreadyFlaggedArtist.issueNumbers) alreadyFlaggedArtist.issueNumbers = [];
 
                 // Add this reporter's vote
-                const currentVotes = alreadyFlagged.reporterVotes[vote.reporter] || 0;
-                alreadyFlagged.reporterVotes[vote.reporter] = currentVotes + 1;
+                const currentVotes = alreadyFlaggedArtist.reporterVotes[vote.reporter] || 0;
+                alreadyFlaggedArtist.reporterVotes[vote.reporter] = currentVotes + 1;
 
-                if (!alreadyFlagged.reporters.includes(vote.reporter)) {
-                    alreadyFlagged.reporters.push(vote.reporter);
+                if (!alreadyFlaggedArtist.reporters.includes(vote.reporter)) {
+                    alreadyFlaggedArtist.reporters.push(vote.reporter);
                 }
 
-                // Add issue number to prevent re-counting
-                alreadyFlagged.issueNumbers.push(issue.number);
+                // Track this issue number
+                alreadyFlaggedArtist.issueNumbers.push(issue.number);
 
                 // Recalculate total
-                alreadyFlagged.votes = calculateTotalVotes(alreadyFlagged.reporterVotes);
+                alreadyFlaggedArtist.votes = calculateTotalVotes(alreadyFlaggedArtist.reporterVotes);
 
-                console.log(`   Updated votes: ${alreadyFlagged.votes} (${vote.reporter}: +1)`);
-                console.log(`   Tracked issues: ${alreadyFlagged.issueNumbers.join(', ')}`);
+                console.log(`   Updated votes: ${alreadyFlaggedArtist.votes}`);
+                console.log(`   Tracked issues: ${alreadyFlaggedArtist.issueNumbers.join(', ')}`);
 
                 // Close this issue
                 thresholdIssues.push(issue.number);
