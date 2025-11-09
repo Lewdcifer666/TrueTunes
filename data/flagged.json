@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-09T02:56:21.319Z",
-  "updated": "2025-11-09T02:56:21.319Z",
-  "total": 16,
+  "version": "2025-11-09T03:03:41.404Z",
+  "updated": "2025-11-09T03:03:41.404Z",
+  "total": 17,
   "artists": [
     {
       "id": "test1",
@@ -204,12 +204,12 @@
       "platforms": {
         "spotify": "3WPTsMdNZY3cEeWUcKrkpt"
       },
-      "votes": 20,
+      "votes": 10,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 20
+        "Lewdcifer666": 10
       },
       "added": "2025-11-09T02:44:57.804Z",
       "issueNumbers": [
@@ -223,6 +223,33 @@
         148,
         147,
         95
+      ]
+    },
+    {
+      "id": "spotify:5COVZd3zir997pQ2dDNMnJ",
+      "name": "Dark Noir",
+      "platforms": {
+        "spotify": "5COVZd3zir997pQ2dDNMnJ"
+      },
+      "votes": 20,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 20
+      },
+      "added": "2025-11-09T03:03:09.238Z",
+      "issueNumbers": [
+        164,
+        163,
+        162,
+        161,
+        160,
+        159,
+        158,
+        157,
+        156,
+        96
       ]
     }
   ]
