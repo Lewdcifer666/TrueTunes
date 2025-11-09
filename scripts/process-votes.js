@@ -340,6 +340,7 @@ async function main() {
         const duplicateIssues = [];
         const thresholdIssues = [];
         const userVoteCount = new Map();
+        const newlyFlaggedIds = new Set(); // Track artists flagged during THIS run
 
         // Build a complete map of ALL historical votes (including recently closed)
         const allHistoricalIssues = [...openIssues, ...recentlyClosed];
@@ -698,7 +699,7 @@ async function main() {
 
         const now = new Date().toISOString();
         let newlyFlagged = 0;
-        const newlyFlaggedIds = new Set(); // Track artists flagged in THIS run
+
 
         pending.artists = pending.artists.filter(artist => {
             // FIXED: Calculate total votes using helper function that handles both Maps and Objects
