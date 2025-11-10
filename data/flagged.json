@@ -1,7 +1,7 @@
 {
-  "version": "2025-11-10T17:23:54.076Z",
-  "updated": "2025-11-10T17:23:54.076Z",
-  "total": 25,
+  "version": "2025-11-10T17:33:11.750Z",
+  "updated": "2025-11-10T17:33:11.750Z",
+  "total": 26,
   "artists": [
     {
       "id": "test1",
@@ -609,6 +609,33 @@
         232
       ],
       "added": "2025-11-10T04:06:30.064Z"
+    },
+    {
+      "id": "spotify:0VxEkJyHqpsYabj1Br8dck",
+      "name": "Phantom Verse",
+      "platforms": {
+        "spotify": "0VxEkJyHqpsYabj1Br8dck"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        251,
+        250,
+        249,
+        248,
+        247,
+        246,
+        245,
+        244,
+        243,
+        242
+      ],
+      "added": "2025-11-10T17:33:11.747Z"
     }
   ]
 }
