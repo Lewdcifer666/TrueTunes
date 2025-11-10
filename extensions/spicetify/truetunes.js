@@ -476,6 +476,28 @@
             const pending = await pendingResponse.json();
             const flagged = await flaggedResponse.json();
 
+            // Update the Maps with latest vote counts
+            window.trueTunesPending = window.trueTunesPending || new Map();
+            window.trueTunesPending.clear();
+
+            pending.artists.forEach(artist => {
+                if (artist.platforms && artist.platforms.spotify) {
+                    const normalizedId = artist.platforms.spotify;
+                    window.trueTunesPending.set(normalizedId, {
+                        name: artist.name,
+                        votes: artist.votes || 0,
+                        reporters: artist.reporters || []
+                    });
+                }
+            });
+
+            flaggedArtists.clear();
+            flagged.artists.forEach(artist => {
+                if (artist.platforms && artist.platforms.spotify) {
+                    flaggedArtists.set(artist.platforms.spotify, artist);
+                }
+            });
+
             communityFeed.recentActivity = [];
 
             // Add pending artists
@@ -870,7 +892,7 @@
                     platform: activity.platform,
                     reporters: [],
                     reporterAvatars: new Map(),
-                    issueNumbers: activity.issueNumbers || [], // Get the full array
+                    issueNumbers: activity.issueNumbers || [],
                     states: new Set(),
                     latestTime: activity.createdAt,
                     comments: 0
@@ -879,24 +901,52 @@
 
             const group = artistGroups.get(normalizedId);
 
-            // Add reporter if not already added
             if (!group.reporters.includes(activity.reporter)) {
                 group.reporters.push(activity.reporter);
                 group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
             }
-            // Don't push individual issue numbers - we already have the full array
             group.states.add(activity.state);
             group.comments += activity.comments;
 
-            // Keep latest time
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
                 group.latestTime = activity.createdAt;
             }
         });
 
-        // Sort by latest activity
         const groupedActivities = Array.from(artistGroups.values())
             .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+        // Get actual vote counts from flagged/pending data
+        groupedActivities.forEach(group => {
+            const artistId = group.artistId;
+            const isOpen = group.states.has('open');
+
+            if (isOpen) {
+                // For open issues, get vote count from pending.json via trueTunesPending Map
+                const pendingData = window.trueTunesPending?.get(artistId);
+                if (pendingData) {
+                    group.voteCount = pendingData.votes || 0;
+                } else {
+                    // Fallback: count from communityFeed activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId && a.state === 'open';
+                    }).length;
+                }
+            } else {
+                // For closed issues, get vote count from flaggedArtists Map (from flagged.json)
+                const flaggedData = flaggedArtists.get(artistId);
+                if (flaggedData) {
+                    group.voteCount = flaggedData.votes || 0;
+                } else {
+                    // Fallback: count all activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId;
+                    }).length;
+                }
+            }
+        });
 
         return `
         <div style="padding: 24px; display: flex; flex-direction: column; height: 100%;">
@@ -930,30 +980,10 @@
             <!-- Grouped Activity Feed -->
             <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
                 ${groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
-            // Count OPEN issues for vote progress
-            const openIssues = communityFeed.recentActivity.filter(activity => {
-                const normalizedId = activity.artistId?.replace(/^spotify:/, '');
-                return normalizedId === group.artistId && activity.state === 'open';
-            });
-            const currentVotes = openIssues.length;
             const isOpen = group.states.has('open');
-
-            // Get total votes from flagged data if closed
-            let totalVotes = currentVotes;
-            if (!isOpen) {
-                const flaggedData = flaggedArtists.get(group.artistId);
-                if (flaggedData) {
-                    totalVotes = flaggedData.votes || 0;
-                } else {
-                    totalVotes = communityFeed.recentActivity.filter(a => {
-                        const id = a.artistId?.replace(/^spotify:/, '');
-                        return id === group.artistId;
-                    }).length;
-                }
-            }
-
-            const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
-            const progressPercent = Math.min((currentVotes / MIN_VOTES) * 100, 100);
+            const voteCount = group.voteCount || 0;
+            const isFlagged = !isOpen && voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((voteCount / MIN_VOTES) * 100, 100);
             const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
                 `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
                     target="_blank" 
@@ -1023,12 +1053,12 @@
                         </div>
                         
                         ${isOpen ? `
-                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                ${currentVotes}/${MIN_VOTES} Votes
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${voteCount}/${MIN_VOTES} Votes
                             </span>
                         ` : (isFlagged ? `
                             <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                ${totalVotes} Votes
+                                ${voteCount} Votes
                             </span>
                         ` : '')}
                     </div>
@@ -1041,16 +1071,12 @@
                     ` : ''}
                 </div>
             `;
-
         }).join('') : `
-                    <div style="text-align: center; color: #999; padding: 60px 20px;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-                        <p>No community activity yet</p>
-                        <button id="truetunes-fetch-community" style="margin-top: 16px; background: #7e22ce; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                            Load Activity
-                        </button>
-                    </div>
-                `}
+            <div style="text-align: center; color: #999; padding: 60px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+                <p>No community activity yet</p>
+            </div>
+        `}
             ${groupedActivities.length > communityView.displayedCount ? `
                 <div id="community-load-more" style="padding: 16px; text-align: center; color: #999; font-size: 12px;">
                     Scroll to load more (${groupedActivities.length - communityView.displayedCount} remaining)
@@ -1072,13 +1098,9 @@
 
         if (!feedContainer) return;
 
-        // Temporarily disable scroll events during update
         communityView.isUpdating = true;
-
-        // Save scroll position
         const savedScrollTop = feedContainer.scrollTop;
 
-        // Group activities (same logic as createCommunityTab)
         const artistGroups = new Map();
         const MIN_VOTES = 10;
 
@@ -1113,36 +1135,59 @@
             }
         });
 
-        // Sort by latest activity
         const groupedActivities = Array.from(artistGroups.values())
             .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
 
-        // Update feed HTML
-        feedContainer.innerHTML = groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
-            // Count OPEN issues for vote progress
-            const openIssues = communityFeed.recentActivity.filter(activity => {
-                const normalizedId = activity.artistId?.replace(/^spotify:/, '');
-                return normalizedId === group.artistId && activity.state === 'open';
-            });
-            const currentVotes = openIssues.length;
+        // Get actual vote counts from flagged/pending data
+        groupedActivities.forEach(group => {
+            const artistId = group.artistId;
             const isOpen = group.states.has('open');
 
-            // Get total votes from flagged data if closed
-            let totalVotes = currentVotes;
-            if (!isOpen) {
-                const flaggedData = flaggedArtists.get(group.artistId);
-                if (flaggedData) {
-                    totalVotes = flaggedData.votes || 0;
+            if (isOpen) {
+                // For open issues, get vote count from pending.json via trueTunesPending Map
+                const pendingData = window.trueTunesPending?.get(artistId);
+                if (pendingData) {
+                    group.voteCount = pendingData.votes || 0;
                 } else {
-                    totalVotes = communityFeed.recentActivity.filter(a => {
+                    // Fallback: count from communityFeed activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
                         const id = a.artistId?.replace(/^spotify:/, '');
-                        return id === group.artistId;
+                        return id === artistId && a.state === 'open';
+                    }).length;
+                }
+            } else {
+                // For closed issues, get vote count from flaggedArtists Map (from flagged.json)
+                const flaggedData = flaggedArtists.get(artistId);
+                if (flaggedData) {
+                    group.voteCount = flaggedData.votes || 0;
+                } else {
+                    // Fallback: count all activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId;
                     }).length;
                 }
             }
+        });
 
-            const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
-            const progressPercent = Math.min((currentVotes / MIN_VOTES) * 100, 100);
+        const formatTimeAgo = (dateString) => {
+            const now = new Date();
+            const past = new Date(dateString);
+            const diffMs = now - past;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        };
+
+        feedContainer.innerHTML = groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
+            const isOpen = group.states.has('open');
+            const voteCount = group.voteCount || 0;
+            const isFlagged = !isOpen && voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((voteCount / MIN_VOTES) * 100, 100);
             const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
                 `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
                     target="_blank" 
@@ -1157,7 +1202,6 @@
                      onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateX(2px)';"
                      onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
                     
-                    <!-- Reporter + Badge -->
                     <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
                             <img src="${group.reporterAvatars.get(group.reporters[0]) || 'https://github.com/github.png'}" 
@@ -1187,7 +1231,6 @@
                         `)}
                     </div>
                     
-                    <!-- Artist Name (Clickable) -->
                     <div style="margin-bottom: 6px;">
                         <a href="https://open.spotify.com/artist/${group.artistId}" 
                            target="_blank"
@@ -1199,7 +1242,6 @@
                         </a>
                     </div>
                     
-                    <!-- Platform + Issues + Vote Count -->
                     <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
                         <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
                             <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
@@ -1212,17 +1254,16 @@
                         </div>
                         
                         ${isOpen ? `
-                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                ${currentVotes}/${MIN_VOTES} Votes
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${voteCount}/${MIN_VOTES} Votes
                             </span>
                         ` : (isFlagged ? `
                             <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                ${totalVotes} Votes
+                                ${voteCount} Votes
                             </span>
                         ` : '')}
                     </div>
                     
-                    <!-- Progress Bar (only for open issues) -->
                     ${isOpen ? `
                         <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
                             <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
@@ -1237,7 +1278,6 @@
             </div>
         `;
 
-        // Update or remove the "load more" indicator
         if (loadMoreIndicator) {
             if (groupedActivities.length > communityView.displayedCount) {
                 loadMoreIndicator.textContent = `Scroll to load more (${groupedActivities.length - communityView.displayedCount} remaining)`;
@@ -1247,7 +1287,6 @@
             }
         }
 
-        // Restore scroll position
         requestAnimationFrame(() => {
             feedContainer.scrollTop = savedScrollTop;
             requestAnimationFrame(() => {
@@ -3462,11 +3501,23 @@
     function closeCommunityFeedSidebar() {
         feedSidebarOpen = false;
         feedSidebarDetached = false;
+        sidebarAutoHide = false;
+
+        if (sidebarHideTimer) {
+            clearTimeout(sidebarHideTimer);
+            sidebarHideTimer = null;
+        }
+
+        cleanupSidebarAutoRefresh();
 
         const sidebar = document.getElementById('truetunes-feed-sidebar');
         if (sidebar) {
             sidebar.remove();
         }
+
+        // Remove right edge trigger if exists
+        const trigger = document.querySelector('[style*="right: 0"][style*="width: 10px"]');
+        if (trigger) trigger.remove();
 
         // Update button
         const btn = document.getElementById('truetunes-feed-toggle');
@@ -3479,7 +3530,6 @@
     function createSidebarCommunityFeed() {
         const MIN_VOTES = 10;
 
-        // Group activities by artist
         const artistGroups = new Map();
 
         communityFeed.recentActivity.forEach(activity => {
@@ -3491,13 +3541,18 @@
                     artistId: normalizedId,
                     artistName: activity.artistName,
                     platform: activity.platform,
+                    reporters: [],
+                    reporterAvatars: new Map(),
                     states: new Set(),
-                    latestTime: activity.createdAt,
-                    voteCount: 0
+                    latestTime: activity.createdAt
                 });
             }
 
             const group = artistGroups.get(normalizedId);
+            if (!group.reporters.includes(activity.reporter)) {
+                group.reporters.push(activity.reporter);
+                group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
+            }
             group.states.add(activity.state);
 
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
@@ -3505,18 +3560,28 @@
             }
         });
 
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
         // Get actual vote counts from flagged/pending data
-        artistGroups.forEach((group, artistId) => {
+        groupedActivities.forEach(group => {
+            const artistId = group.artistId;
             const isOpen = group.states.has('open');
 
             if (isOpen) {
-                // For open issues, count from communityFeed activities with state 'open'
-                group.voteCount = communityFeed.recentActivity.filter(a => {
-                    const id = a.artistId?.replace(/^spotify:/, '');
-                    return id === artistId && a.state === 'open';
-                }).length;
+                // For open issues, get vote count from pending.json via trueTunesPending Map
+                const pendingData = window.trueTunesPending?.get(artistId);
+                if (pendingData) {
+                    group.voteCount = pendingData.votes || 0;
+                } else {
+                    // Fallback: count from communityFeed activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId && a.state === 'open';
+                    }).length;
+                }
             } else {
-                // For closed issues, get vote count from flaggedArtists Map
+                // For closed issues, get vote count from flaggedArtists Map (from flagged.json)
                 const flaggedData = flaggedArtists.get(artistId);
                 if (flaggedData) {
                     group.voteCount = flaggedData.votes || 0;
@@ -3530,28 +3595,35 @@
             }
         });
 
-        // Sort by latest activity
-        const groupedActivities = Array.from(artistGroups.values())
-            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
-
-        // Display more entries initially for sidebar (20 instead of 10)
         const displayCount = Math.min(20, groupedActivities.length);
+
+        const formatTimeAgo = (dateString) => {
+            const now = new Date();
+            const past = new Date(dateString);
+            const diffMs = now - past;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        };
 
         return `
             <div style="padding: 16px; display: flex; flex-direction: column; height: 100%;">
-                <!-- Activity Feed -->
                 <div id="sidebar-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
                     ${groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
             const isOpen = group.states.has('open');
-            const isFlagged = !isOpen && group.voteCount >= MIN_VOTES;
-            const progressPercent = Math.min((group.voteCount / MIN_VOTES) * 100, 100);
+            const voteCount = group.voteCount || 0;
+            const isFlagged = !isOpen && voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((voteCount / MIN_VOTES) * 100, 100);
 
             return `
                             <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')}; transition: all 0.2s;"
                                  onmouseover="this.style.background='rgba(255, 255, 255, 0.08)';"
                                  onmouseout="this.style.background='rgba(255, 255, 255, 0.05)';">
                                 
-                                <!-- Header: Time + Status Badge -->
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
                                     <span>${formatTimeAgo(group.latestTime)}</span>
                                     ${isOpen ? `
@@ -3569,7 +3641,6 @@
                                     `)}
                                 </div>
                                 
-                                <!-- Artist Name -->
                                 <div style="margin-bottom: 8px;">
                                     <a href="https://open.spotify.com/artist/${group.artistId}" 
                                        target="_blank"
@@ -3581,21 +3652,22 @@
                                     </a>
                                 </div>
                                 
-                                <!-- Platform and Vote Count -->
                                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
-                                    <span style="color: #999;">🎵 ${group.platform}</span>
+                                    <div style="display: flex; align-items: center; gap: 8px; color: #999;">
+                                        <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
+                                    </div>
+                                    
                                     ${isOpen ? `
-                                        <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                            ${group.voteCount}/${MIN_VOTES} Votes
+                                        <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                            ${voteCount}/${MIN_VOTES} Votes
                                         </span>
-                                    ` : `
-                                        <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                            ${group.voteCount} Vote${group.voteCount !== 1 ? 's' : ''}
+                                    ` : (isFlagged ? `
+                                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                            ${voteCount} Votes
                                         </span>
-                                    `}
+                                    ` : '')}
                                 </div>
                                 
-                                <!-- Progress Bar (only for open issues) -->
                                 ${isOpen ? `
                                     <div style="width: 100%; height: 3px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
                                         <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
@@ -3611,7 +3683,6 @@
                     `}
                 </div>
                 
-                <!-- Auto-Update Notice -->
                 <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; font-size: 10px; color: #60a5fa; text-align: center;">
                     ⏱️ Auto-updates every 10 minutes
                 </div>
@@ -3623,12 +3694,9 @@
         const feedContainer = document.getElementById('sidebar-feed-container');
         if (!feedContainer) return;
 
-        // Save scroll position
         const savedScrollTop = feedContainer.scrollTop;
 
         const MIN_VOTES = 10;
-
-        // Group activities by artist
         const artistGroups = new Map();
 
         communityFeed.recentActivity.forEach(activity => {
@@ -3641,8 +3709,7 @@
                     artistName: activity.artistName,
                     platform: activity.platform,
                     states: new Set(),
-                    latestTime: activity.createdAt,
-                    voteCount: 0
+                    latestTime: activity.createdAt
                 });
             }
 
@@ -3654,20 +3721,33 @@
             }
         });
 
-        // Get actual vote counts
-        artistGroups.forEach((group, artistId) => {
+        const groupedActivities = Array.from(artistGroups.values())
+            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
+
+        // Get actual vote counts from flagged/pending data
+        groupedActivities.forEach(group => {
+            const artistId = group.artistId;
             const isOpen = group.states.has('open');
 
             if (isOpen) {
-                group.voteCount = communityFeed.recentActivity.filter(a => {
-                    const id = a.artistId?.replace(/^spotify:/, '');
-                    return id === artistId && a.state === 'open';
-                }).length;
+                // For open issues, get vote count from pending.json via trueTunesPending Map
+                const pendingData = window.trueTunesPending?.get(artistId);
+                if (pendingData) {
+                    group.voteCount = pendingData.votes || 0;
+                } else {
+                    // Fallback: count from communityFeed activities
+                    group.voteCount = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === artistId && a.state === 'open';
+                    }).length;
+                }
             } else {
+                // For closed issues, get vote count from flaggedArtists Map (from flagged.json)
                 const flaggedData = flaggedArtists.get(artistId);
                 if (flaggedData) {
                     group.voteCount = flaggedData.votes || 0;
                 } else {
+                    // Fallback: count all activities
                     group.voteCount = communityFeed.recentActivity.filter(a => {
                         const id = a.artistId?.replace(/^spotify:/, '');
                         return id === artistId;
@@ -3676,16 +3756,26 @@
             }
         });
 
-        const groupedActivities = Array.from(artistGroups.values())
-            .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
-
         const displayCount = Math.min(20, groupedActivities.length);
 
-        // Update feed HTML
+        const formatTimeAgo = (dateString) => {
+            const now = new Date();
+            const past = new Date(dateString);
+            const diffMs = now - past;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${diffDays}d ago`;
+        };
+
         feedContainer.innerHTML = groupedActivities.length > 0 ? groupedActivities.slice(0, displayCount).map(group => {
             const isOpen = group.states.has('open');
-            const isFlagged = !isOpen && group.voteCount >= MIN_VOTES;
-            const progressPercent = Math.min((group.voteCount / MIN_VOTES) * 100, 100);
+            const voteCount = group.voteCount || 0;
+            const isFlagged = !isOpen && voteCount >= MIN_VOTES;
+            const progressPercent = Math.min((voteCount / MIN_VOTES) * 100, 100);
 
             return `
                 <div style="background: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')}; transition: all 0.2s;"
@@ -3721,16 +3811,19 @@
                     </div>
                     
                     <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
-                        <span style="color: #999;">🎵 ${group.platform}</span>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #999;">
+                            <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
+                        </div>
+                        
                         ${isOpen ? `
-                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                ${group.voteCount}/${MIN_VOTES} Votes
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                ${voteCount}/${MIN_VOTES} Votes
                             </span>
-                        ` : `
-                            <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
-                                ${group.voteCount} Vote${group.voteCount !== 1 ? 's' : ''}
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 10px; border-radius: 10px; font-weight: 700; white-space: nowrap;">
+                                ${voteCount} Votes
                             </span>
-                        `}
+                        ` : '')}
                     </div>
                     
                     ${isOpen ? `
@@ -3747,7 +3840,6 @@
             </div>
         `;
 
-        // Restore scroll position
         setTimeout(() => {
             feedContainer.scrollTop = savedScrollTop;
         }, 0);
@@ -3789,24 +3881,35 @@
         }
     }
 
+    // Auto-hide state
+    let sidebarAutoHide = false;
+    let sidebarHideTimer = null;
+    let sidebarHovered = false;
+
     function createCommunityFeedSidebar() {
+        // Load saved auto-hide preference
+        const savedAutoHide = localStorage.getItem('truetunes_sidebar_autohide');
+        if (savedAutoHide === 'true') {
+            sidebarAutoHide = true;
+        }
+
         const sidebar = document.createElement('div');
         sidebar.id = 'truetunes-feed-sidebar';
         sidebar.className = 'truetunes-feed-sidebar docked';
 
-        // Sidebar styles
+        // Sidebar styles - REDUCED HEIGHT by 104.41px
         sidebar.style.cssText = `
             position: fixed;
             right: 0;
             top: 64px;
-            bottom: 0;
+            bottom: 104.41px;
             width: 400px;
             background: #121212;
             border-left: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 9998;
             display: flex;
             flex-direction: column;
-            animation: slideInRight 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         `;
 
         // Header
@@ -3836,26 +3939,24 @@
             </div>
         `;
 
-        // Controls bar
+        // Controls bar with auto-hide checkbox
         const controls = document.createElement('div');
         controls.style.cssText = `
             background: #1a1a1a;
             padding: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
         `;
 
         controls.innerHTML = `
-            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
-                🔄 Refresh
-            </button>
-        `;
-
-        controls.innerHTML = `
-            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">
+            <label style="display: flex; align-items: center; gap: 8px; color: white; font-size: 12px; cursor: pointer;">
+                <input type="checkbox" id="truetunes-sidebar-autohide" style="width: 16px; height: 16px; cursor: pointer;">
+                <span style="font-weight: 600;">Auto Hide</span>
+            </label>
+            <button id="truetunes-sidebar-refresh" style="background: rgba(126, 34, 206, 0.2); border: 1px solid #7e22ce; color: #7e22ce; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s;">
                 🔄 Refresh
             </button>
         `;
@@ -3884,7 +3985,128 @@
         // Add event listeners
         setupSidebarEventListeners(sidebar, header);
 
+        // Setup auto-hide behavior
+        setupAutoHideBehavior(sidebar);
+
+        // Setup auto-refresh (10 minutes)
+        setupSidebarAutoRefresh();
+
         return sidebar;
+    }
+
+    function setupAutoHideBehavior(sidebar) {
+        const checkbox = sidebar.querySelector('#truetunes-sidebar-autohide');
+        const rightEdgeTrigger = document.createElement('div');
+
+        // Create invisible trigger area on right edge
+        rightEdgeTrigger.style.cssText = `
+            position: fixed;
+            right: 0;
+            top: 64px;
+            bottom: 104.41px;
+            width: 10px;
+            z-index: 9997;
+            display: none;
+        `;
+        document.body.appendChild(rightEdgeTrigger);
+
+        // Mouse enter/leave for sidebar
+        sidebar.addEventListener('mouseenter', () => {
+            sidebarHovered = true;
+            if (sidebarAutoHide && sidebar.classList.contains('hidden')) {
+                showSidebar(sidebar, rightEdgeTrigger);
+            }
+            if (sidebarHideTimer) {
+                clearTimeout(sidebarHideTimer);
+                sidebarHideTimer = null;
+            }
+        });
+
+        sidebar.addEventListener('mouseleave', () => {
+            sidebarHovered = false;
+            if (sidebarAutoHide && !feedSidebarDetached) {
+                startHideTimer(sidebar, rightEdgeTrigger);
+            }
+        });
+
+        // Trigger area for showing sidebar when hidden
+        rightEdgeTrigger.addEventListener('mouseenter', () => {
+            if (sidebarAutoHide && sidebar.classList.contains('hidden')) {
+                showSidebar(sidebar, rightEdgeTrigger);
+            }
+        });
+
+        // Checkbox toggle
+        if (checkbox) {
+            // Set initial checkbox state from saved preference
+            checkbox.checked = sidebarAutoHide;
+
+            checkbox.addEventListener('change', (e) => {
+                sidebarAutoHide = e.target.checked;
+
+                // Save preference to localStorage
+                localStorage.setItem('truetunes_sidebar_autohide', sidebarAutoHide.toString());
+
+                if (sidebarAutoHide && !feedSidebarDetached) {
+                    rightEdgeTrigger.style.display = 'block';
+                    startHideTimer(sidebar, rightEdgeTrigger);
+                } else {
+                    rightEdgeTrigger.style.display = 'none';
+                    showSidebar(sidebar, rightEdgeTrigger);
+                    if (sidebarHideTimer) {
+                        clearTimeout(sidebarHideTimer);
+                        sidebarHideTimer = null;
+                    }
+                }
+            });
+        }
+    }
+
+    function startHideTimer(sidebar, rightEdgeTrigger) {
+        if (sidebarHideTimer) clearTimeout(sidebarHideTimer);
+
+        sidebarHideTimer = setTimeout(() => {
+            if (!sidebarHovered && sidebarAutoHide && !feedSidebarDetached) {
+                hideSidebar(sidebar, rightEdgeTrigger);
+            }
+        }, 5000);
+    }
+
+    function hideSidebar(sidebar, rightEdgeTrigger) {
+        sidebar.classList.add('hidden');
+        sidebar.style.transform = 'translateX(100%)';
+        rightEdgeTrigger.style.display = 'block';
+    }
+
+    function showSidebar(sidebar, rightEdgeTrigger) {
+        sidebar.classList.remove('hidden');
+        sidebar.style.transform = 'translateX(0)';
+        rightEdgeTrigger.style.display = sidebarAutoHide ? 'block' : 'none';
+    }
+
+    let sidebarAutoRefreshInterval = null;
+
+    function setupSidebarAutoRefresh() {
+        // Clear any existing interval
+        if (sidebarAutoRefreshInterval) {
+            clearInterval(sidebarAutoRefreshInterval);
+        }
+
+        // Auto-refresh every 10 minutes
+        sidebarAutoRefreshInterval = setInterval(async () => {
+            if (feedSidebarOpen) {
+                console.log('[TrueTunes] Auto-refreshing sidebar feed...');
+                await fetchCommunityActivity();
+                updateSidebarIfOpen();
+            }
+        }, 10 * 60 * 1000); // 10 minutes
+    }
+
+    function cleanupSidebarAutoRefresh() {
+        if (sidebarAutoRefreshInterval) {
+            clearInterval(sidebarAutoRefreshInterval);
+            sidebarAutoRefreshInterval = null;
+        }
     }
 
     function setupSidebarEventListeners(sidebar, header) {
@@ -3908,14 +4130,15 @@
                         position: fixed;
                         right: 0;
                         top: 64px;
-                        bottom: 0;
+                        bottom: 104.41px;
                         width: 400px;
                         background: #121212;
                         border-left: 1px solid rgba(255, 255, 255, 0.1);
                         z-index: 9998;
                         display: flex;
                         flex-direction: column;
-                        opacity: 1;
+                        opacity: ${sidebar.style.opacity || 1};
+                        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     `;
                     feedSidebarDetached = false;
                     detachBtn.innerHTML = '📌';
