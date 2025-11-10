@@ -1,32 +1,5 @@
 {
-  "version": "2025-11-10T03:56:41.450Z",
-  "updated": "2025-11-10T03:56:41.450Z",
-  "artists": [
-    {
-      "id": "spotify:3CwHxE8HXuezwO8DobgbiM",
-      "name": "DEADLUVE",
-      "platforms": {
-        "spotify": "3CwHxE8HXuezwO8DobgbiM"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        232,
-        234,
-        233,
-        235,
-        237,
-        236,
-        238,
-        240,
-        239
-      ],
-      "added": "2025-11-10T01:42:39.029Z"
-    }
-  ]
+  "version": "2025-11-10T04:06:30.066Z",
+  "updated": "2025-11-10T04:06:30.066Z",
+  "artists": []
 }
