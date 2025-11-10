@@ -935,10 +935,26 @@
                 const normalizedId = activity.artistId?.replace(/^spotify:/, '');
                 return normalizedId === group.artistId && activity.state === 'open';
             });
-            const totalVotes = openIssues.length;
-            const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
+            const currentVotes = openIssues.length;
             const isOpen = group.states.has('open');
+
+            // Get total votes from flagged data if closed
+            let totalVotes = currentVotes;
+            if (!isOpen) {
+                const flaggedData = flaggedArtists.get(group.artistId);
+                if (flaggedData) {
+                    totalVotes = flaggedData.votes || 0;
+                } else {
+                    // Fallback: count all activities
+                    totalVotes = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === group.artistId;
+                    }).length;
+                }
+            }
+
             const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
+            const progressPercent = Math.min((currentVotes / MIN_VOTES) * 100, 100);
             const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
                 `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
                             target="_blank" 
@@ -949,35 +965,30 @@
             ).join(', ');
 
             return `
-                    <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#666')};">
+                    <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')};"
+                         onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateX(2px)';"
+                         onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
                         
-                        <!-- Header Row with Reporters and Status -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                                ${group.reporters.slice(0, 3).map(reporter => `
-                                    <img src="${group.reporterAvatars.get(reporter)}" 
-                                         style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);"
-                                         title="@${reporter}">
-                                `).join('')}
-                                ${group.reporters.length > 3 ? `
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid rgba(126, 34, 206, 0.5);">
-                                        +${group.reporters.length - 3}
-                                    </div>
-                                ` : ''}
+                        <!-- Header: Status Badge + Time -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${isOpen ? `
+                                    <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
+                                        open
+                                    </span>
+                                ` : (isFlagged ? `
+                                    <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
+                                        flagged
+                                    </span>
+                                ` : `
+                                    <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
+                                        closed
+                                    </span>
+                                `)}
+                                <span>${formatTimeAgo(group.latestTime)}</span>
                             </div>
-                            
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: 600; font-size: 12px; color: #7e22ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    ${group.reporters.map(r => `@${r}`).join(', ')}
-                                </div>
-                                <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(group.latestTime)}</div>
-                            </div>
-                            
-                            <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
-                                ${isOpen ? 'open' : 'closed'}
-                            </span>
                         </div>
-
+                        
                         <!-- Artist Name (Clickable) -->
                         <div style="margin-bottom: 6px;">
                             <a href="https://open.spotify.com/artist/${group.artistId}" 
@@ -991,7 +1002,7 @@
                         </div>
                         
                         <!-- Platform, Issues, and Vote Count -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
                             <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
                                 <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
                                 <span style="flex-shrink: 0;">•</span>
@@ -1004,16 +1015,38 @@
                             
                             ${isOpen ? `
                                 <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                    ${totalVotes}/${MIN_VOTES} Votes
+                                    ${currentVotes}/${MIN_VOTES} Votes
                                 </span>
                             ` : (isFlagged ? `
                                 <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                    Flagged
+                                    ${totalVotes} Votes
                                 </span>
                             ` : '')}
                         </div>
                         
-                        <!-- Progress Bar -->
+                        <!-- Reporters -->
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${isOpen ? '8px' : '0'};">
+                            <div style="display: flex; margin-left: -4px;">
+                                ${group.reporters.slice(0, 5).map((reporter, idx) => `
+                                    <a href="https://github.com/${reporter}" 
+                                       target="_blank"
+                                       style="margin-left: -4px; z-index: ${5 - idx};"
+                                       title="${reporter}">
+                                        <img src="${group.reporterAvatars.get(reporter)}" 
+                                             style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #121212;" 
+                                             alt="${reporter}">
+                                    </a>
+                                `).join('')}
+                                ${group.reporters.length > 5 ? `
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); border: 2px solid #121212; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #7e22ce; margin-left: -4px; z-index: 0;">
+                                        +${group.reporters.length - 5}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <span style="font-size: 10px; color: #999;">${group.reporters.length} reporter${group.reporters.length > 1 ? 's' : ''}</span>
+                        </div>
+                        
+                        <!-- Progress Bar (only for open issues) -->
                         ${isOpen ? `
                             <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
                                 <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
@@ -1021,6 +1054,7 @@
                         ` : ''}
                     </div>
                 `;
+
         }).join('') : `
                     <div style="text-align: center; color: #999; padding: 60px 20px;">
                         <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
@@ -3924,34 +3958,8 @@
 
                 await fetchCommunityActivity();
 
-                const content = sidebar.querySelector('#truetunes-sidebar-content');
-                if (content) {
-                    // Don't recreate, just update the feed
-                    updateSidebarFeedOnly();
-                    if (feedContainer) {
-                        feedContainer.addEventListener('scroll', () => {
-                            if (communityView.isUpdating) return;
-
-                            const { scrollTop, scrollHeight, clientHeight } = feedContainer;
-                            if (scrollTop + clientHeight >= scrollHeight * 0.8) {
-                                const artistGroups = new Map();
-                                communityFeed.recentActivity.forEach(activity => {
-                                    const normalizedId = activity.artistId?.replace(/^spotify:/, '');
-                                    if (!normalizedId) return;
-                                    if (!artistGroups.has(normalizedId)) {
-                                        artistGroups.set(normalizedId, { latestTime: activity.createdAt });
-                                    }
-                                });
-
-                                const totalGroups = artistGroups.size;
-                                if (communityView.displayedCount < totalGroups) {
-                                    communityView.displayedCount += 10;
-                                    updateCommunityFeedOnly();
-                                }
-                            }
-                        });
-                    }
-                }
+                // Just update the sidebar feed
+                updateSidebarFeedOnly();
 
                 refreshBtn.textContent = '🔄 Refresh';
                 refreshBtn.disabled = false;
