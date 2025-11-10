@@ -930,7 +930,7 @@
             <!-- Grouped Activity Feed -->
             <div id="community-feed-container" style="flex: 1; overflow-y: auto; padding-right: 8px;">
                 ${groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
-            // FIXED: Only count OPEN issues for vote progress
+            // Count OPEN issues for vote progress
             const openIssues = communityFeed.recentActivity.filter(activity => {
                 const normalizedId = activity.artistId?.replace(/^spotify:/, '');
                 return normalizedId === group.artistId && activity.state === 'open';
@@ -945,7 +945,6 @@
                 if (flaggedData) {
                     totalVotes = flaggedData.votes || 0;
                 } else {
-                    // Fallback: count all activities
                     totalVotes = communityFeed.recentActivity.filter(a => {
                         const id = a.artistId?.replace(/^spotify:/, '');
                         return id === group.artistId;
@@ -957,103 +956,91 @@
             const progressPercent = Math.min((currentVotes / MIN_VOTES) * 100, 100);
             const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
                 `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
-                            target="_blank" 
-                            style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
-                            onclick="event.stopPropagation();"
-                            onmouseover="this.style.textDecoration='underline';"
-                            onmouseout="this.style.textDecoration='none';">#${n}</a>`
+                    target="_blank" 
+                    style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
+                    onclick="event.stopPropagation();"
+                    onmouseover="this.style.textDecoration='underline';"
+                    onmouseout="this.style.textDecoration='none';">#${n}</a>`
             ).join(', ');
 
             return `
-                    <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')};"
-                         onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateX(2px)';"
-                         onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
-                        
-                        <!-- Header: Status Badge + Time -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 10px; color: #999;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                ${isOpen ? `
-                                    <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
-                                        open
-                                    </span>
-                                ` : (isFlagged ? `
-                                    <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
-                                        flagged
-                                    </span>
-                                ` : `
-                                    <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 4px 10px; border-radius: 12px; font-weight: 700;">
-                                        closed
-                                    </span>
-                                `)}
-                                <span>${formatTimeAgo(group.latestTime)}</span>
+                <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')};"
+                     onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateX(2px)';"
+                     onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                    
+                    <!-- Reporter + Badge -->
+                    <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                            <img src="${group.reporterAvatars.get(group.reporters[0]) || 'https://github.com/github.png'}" 
+                                 style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;" 
+                                 alt="${group.reporters[0] || 'Reporter'}">
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${group.reporters[0] || 'Unknown'}
+                                </div>
+                                <div style="font-size: 10px; color: #999;">
+                                    ${formatTimeAgo(group.latestTime)}
+                                </div>
                             </div>
                         </div>
-                        
-                        <!-- Artist Name (Clickable) -->
-                        <div style="margin-bottom: 6px;">
-                            <a href="https://open.spotify.com/artist/${group.artistId}" 
-                               target="_blank"
-                               style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
-                               onclick="event.stopPropagation();"
-                               onmouseover="this.style.color='#7e22ce';"
-                               onmouseout="this.style.color='white';">
-                                ${group.artistName}
-                            </a>
-                        </div>
-                        
-                        <!-- Platform, Issues, and Vote Count -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
-                            <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
-                                <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
-                                <span style="flex-shrink: 0;">•</span>
-                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
-                                ${group.comments > 0 ? `
-                                    <span style="flex-shrink: 0;">•</span>
-                                    <span style="flex-shrink: 0;">💬 ${group.comments}</span>
-                                ` : ''}
-                            </div>
-                            
-                            ${isOpen ? `
-                                <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                    ${currentVotes}/${MIN_VOTES} Votes
-                                </span>
-                            ` : (isFlagged ? `
-                                <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                                    ${totalVotes} Votes
-                                </span>
-                            ` : '')}
-                        </div>
-                        
-                        <!-- Reporters -->
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${isOpen ? '8px' : '0'};">
-                            <div style="display: flex; margin-left: -4px;">
-                                ${group.reporters.slice(0, 5).map((reporter, idx) => `
-                                    <a href="https://github.com/${reporter}" 
-                                       target="_blank"
-                                       style="margin-left: -4px; z-index: ${5 - idx};"
-                                       title="${reporter}">
-                                        <img src="${group.reporterAvatars.get(reporter)}" 
-                                             style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #121212;" 
-                                             alt="${reporter}">
-                                    </a>
-                                `).join('')}
-                                ${group.reporters.length > 5 ? `
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); border: 2px solid #121212; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #7e22ce; margin-left: -4px; z-index: 0;">
-                                        +${group.reporters.length - 5}
-                                    </div>
-                                ` : ''}
-                            </div>
-                            <span style="font-size: 10px; color: #999;">${group.reporters.length} reporter${group.reporters.length > 1 ? 's' : ''}</span>
-                        </div>
-                        
-                        <!-- Progress Bar (only for open issues) -->
                         ${isOpen ? `
-                            <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
-                                <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
-                            </div>
-                        ` : ''}
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                open
+                            </span>
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                flagged
+                            </span>
+                        ` : `
+                            <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                closed
+                            </span>
+                        `)}
                     </div>
-                `;
+                    
+                    <!-- Artist Name (Clickable) -->
+                    <div style="margin-bottom: 6px;">
+                        <a href="https://open.spotify.com/artist/${group.artistId}" 
+                           target="_blank"
+                           style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
+                           onclick="event.stopPropagation();"
+                           onmouseover="this.style.color='#7e22ce';"
+                           onmouseout="this.style.color='white';">
+                            ${group.artistName}
+                        </a>
+                    </div>
+                    
+                    <!-- Platform + Issues + Vote Count -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
+                        <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
+                            <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
+                            <span style="flex-shrink: 0;">•</span>
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
+                            ${group.comments > 0 ? `
+                                <span style="flex-shrink: 0;">•</span>
+                                <span style="flex-shrink: 0;">💬 ${group.comments}</span>
+                            ` : ''}
+                        </div>
+                        
+                        ${isOpen ? `
+                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${currentVotes}/${MIN_VOTES} Votes
+                            </span>
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${totalVotes} Votes
+                            </span>
+                        ` : '')}
+                    </div>
+                    
+                    <!-- Progress Bar (only for open issues) -->
+                    ${isOpen ? `
+                        <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                            <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
 
         }).join('') : `
                     <div style="text-align: center; color: #999; padding: 60px 20px;">
@@ -1106,7 +1093,7 @@
                     platform: activity.platform,
                     reporters: [],
                     reporterAvatars: new Map(),
-                    issueNumbers: activity.issueNumbers || [], // Get the full array from the first activity
+                    issueNumbers: activity.issueNumbers || [],
                     states: new Set(),
                     latestTime: activity.createdAt,
                     comments: 0
@@ -1118,121 +1105,137 @@
                 group.reporters.push(activity.reporter);
                 group.reporterAvatars.set(activity.reporter, activity.reporterAvatar);
             }
-            // Don't push individual issue numbers - we already have the full array
             group.states.add(activity.state);
             group.comments += activity.comments;
+
             if (new Date(activity.createdAt) > new Date(group.latestTime)) {
                 group.latestTime = activity.createdAt;
             }
         });
 
+        // Sort by latest activity
         const groupedActivities = Array.from(artistGroups.values())
             .sort((a, b) => new Date(b.latestTime) - new Date(a.latestTime));
 
-        const formatTimeAgo = (dateString) => {
-            const now = new Date();
-            const past = new Date(dateString);
-            const diffMs = now - past;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-            if (diffMins < 1) return 'just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            return `${diffDays}d ago`;
-        };
-
-        // Build HTML for displayed items
-        const displayedActivities = groupedActivities.slice(0, communityView.displayedCount);
-
-        feedContainer.innerHTML = displayedActivities.length > 0 ? displayedActivities.map(group => {
+        // Update feed HTML
+        feedContainer.innerHTML = groupedActivities.length > 0 ? groupedActivities.slice(0, communityView.displayedCount).map(group => {
+            // Count OPEN issues for vote progress
             const openIssues = communityFeed.recentActivity.filter(activity => {
                 const normalizedId = activity.artistId?.replace(/^spotify:/, '');
                 return normalizedId === group.artistId && activity.state === 'open';
             });
-            const totalVotes = openIssues.length;
-            const progressPercent = Math.min((totalVotes / MIN_VOTES) * 100, 100);
+            const currentVotes = openIssues.length;
             const isOpen = group.states.has('open');
+
+            // Get total votes from flagged data if closed
+            let totalVotes = currentVotes;
+            if (!isOpen) {
+                const flaggedData = flaggedArtists.get(group.artistId);
+                if (flaggedData) {
+                    totalVotes = flaggedData.votes || 0;
+                } else {
+                    totalVotes = communityFeed.recentActivity.filter(a => {
+                        const id = a.artistId?.replace(/^spotify:/, '');
+                        return id === group.artistId;
+                    }).length;
+                }
+            }
+
             const isFlagged = !isOpen && totalVotes >= MIN_VOTES;
-            const issueLinks = (group.issueNumbers && group.issueNumbers.length > 0)
-                ? group.issueNumbers.filter(n => n !== null).sort((a, b) => a - b).map(n =>
-                    `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
-            target="_blank" 
-            style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
-            onclick="event.stopPropagation();"
-            onmouseover="this.style.textDecoration='underline';"
-            onmouseout="this.style.textDecoration='none';">#${n}</a>`
-                ).join(', ')
-                : '<span style="color: #999;">Community flagged</span>';
+            const progressPercent = Math.min((currentVotes / MIN_VOTES) * 100, 100);
+            const issueLinks = group.issueNumbers.sort((a, b) => a - b).map(n =>
+                `<a href="https://github.com/Lewdcifer666/TrueTunes/issues/${n}" 
+                    target="_blank" 
+                    style="color: #7e22ce; font-weight: 600; text-decoration: none;" 
+                    onclick="event.stopPropagation();"
+                    onmouseover="this.style.textDecoration='underline';"
+                    onmouseout="this.style.textDecoration='none';">#${n}</a>`
+            ).join(', ');
 
             return `
-            <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#666')};">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                        ${group.reporters.slice(0, 3).map(reporter => `
-                            <img src="${group.reporterAvatars.get(reporter)}" 
-                                 style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(126, 34, 206, 0.5);"
-                                 title="@${reporter}">
-                        `).join('')}
-                        ${group.reporters.length > 3 ? `
-                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(126, 34, 206, 0.3); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border: 2px solid rgba(126, 34, 206, 0.5);">
-                                +${group.reporters.length - 3}
+                <div style="display: block; background: rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 10px; margin-bottom: 10px; color: white; transition: all 0.2s; border-left: 3px solid ${isOpen ? '#22c55e' : (isFlagged ? '#ef4444' : '#999')};"
+                     onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateX(2px)';"
+                     onmouseout="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.transform='translateX(0)';">
+                    
+                    <!-- Reporter + Badge -->
+                    <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                            <img src="${group.reporterAvatars.get(group.reporters[0]) || 'https://github.com/github.png'}" 
+                                 style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;" 
+                                 alt="${group.reporters[0] || 'Reporter'}">
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${group.reporters[0] || 'Unknown'}
+                                </div>
+                                <div style="font-size: 10px; color: #999;">
+                                    ${formatTimeAgo(group.latestTime)}
+                                </div>
                             </div>
-                        ` : ''}
-                    </div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 600; font-size: 12px; color: #7e22ce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${group.reporters.map(r => `@${r}`).join(', ')}
                         </div>
-                        <div style="font-size: 11px; color: #999;">reported ${formatTimeAgo(group.latestTime)}</div>
+                        ${isOpen ? `
+                            <span style="background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #22c55e; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                open
+                            </span>
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                flagged
+                            </span>
+                        ` : `
+                            <span style="background: rgba(100, 100, 100, 0.2); border: 1px solid rgba(100, 100, 100, 0.4); color: #999; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-left: 12px;">
+                                closed
+                            </span>
+                        `)}
                     </div>
-                    <span style="background: ${isOpen ? 'rgba(34, 197, 94, 0.2)' : 'rgba(100, 100, 100, 0.2)'}; border: 1px solid ${isOpen ? 'rgba(34, 197, 94, 0.4)' : 'rgba(100, 100, 100, 0.4)'}; color: ${isOpen ? '#22c55e' : '#999'}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; flex-shrink: 0;">
-                        ${isOpen ? 'open' : 'closed'}
-                    </span>
-                </div>
-                <div style="margin-bottom: 6px;">
-                    <a href="https://open.spotify.com/artist/${group.artistId}" 
-                       target="_blank"
-                       style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
-                       onclick="event.stopPropagation();"
-                       onmouseover="this.style.color='#7e22ce';"
-                       onmouseout="this.style.color='white';">
-                        ${group.artistName}
-                    </a>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
-                        <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
-                        <span style="flex-shrink: 0;">•</span>
-                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
-                        ${group.comments > 0 ? `
+                    
+                    <!-- Artist Name (Clickable) -->
+                    <div style="margin-bottom: 6px;">
+                        <a href="https://open.spotify.com/artist/${group.artistId}" 
+                           target="_blank"
+                           style="font-weight: 600; font-size: 15px; color: white; text-decoration: none; transition: color 0.2s; display: inline;"
+                           onclick="event.stopPropagation();"
+                           onmouseover="this.style.color='#7e22ce';"
+                           onmouseout="this.style.color='white';">
+                            ${group.artistName}
+                        </a>
+                    </div>
+                    
+                    <!-- Platform + Issues + Vote Count -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: ${isOpen ? '8px' : '0'};">
+                        <div style="display: flex; align-items: center; gap: 8px; color: #999; overflow: hidden;">
+                            <span style="flex-shrink: 0;">🎵 ${group.platform}</span>
                             <span style="flex-shrink: 0;">•</span>
-                            <span style="flex-shrink: 0;">💬 ${group.comments}</span>
-                        ` : ''}
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Issue ${issueLinks}</span>
+                            ${group.comments > 0 ? `
+                                <span style="flex-shrink: 0;">•</span>
+                                <span style="flex-shrink: 0;">💬 ${group.comments}</span>
+                            ` : ''}
+                        </div>
+                        
+                        ${isOpen ? `
+                            <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${currentVotes}/${MIN_VOTES} Votes
+                            </span>
+                        ` : (isFlagged ? `
+                            <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
+                                ${totalVotes} Votes
+                            </span>
+                        ` : '')}
                     </div>
+                    
+                    <!-- Progress Bar (only for open issues) -->
                     ${isOpen ? `
-                        <span style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(126, 34, 206, 0.4); color: #7e22ce; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                            ${totalVotes}/${MIN_VOTES} Votes
-                        </span>
-                    ` : (isFlagged ? `
-                        <span style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 12px; border-radius: 12px; font-weight: 700; white-space: nowrap; margin-left: 12px; flex-shrink: 0;">
-                            Flagged
-                        </span>
-                    ` : '')}
+                        <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
+                            <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        </div>
+                    ` : ''}
                 </div>
-                ${isOpen ? `
-                    <div style="width: 100%; height: 4px; background: rgba(126, 34, 206, 0.2); border-radius: 2px; overflow: hidden;">
-                        <div style="height: 100%; background: linear-gradient(90deg, #7e22ce, #db2777); width: ${progressPercent}%; transition: width 0.3s ease;"></div>
-                    </div>
-                ` : ''}
+            `;
+        }).join('') : `
+            <div style="text-align: center; color: #999; padding: 60px 20px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+                <p>No community activity yet</p>
             </div>
         `;
-        }).join('') : `
-        <div style="text-align: center; color: #999; padding: 60px 20px;">
-            <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-            <p>No community activity yet</p>
-        </div>
-    `;
 
         // Update or remove the "load more" indicator
         if (loadMoreIndicator) {
@@ -1244,10 +1247,9 @@
             }
         }
 
-        // Restore scroll position using requestAnimationFrame for smooth restoration
+        // Restore scroll position
         requestAnimationFrame(() => {
             feedContainer.scrollTop = savedScrollTop;
-            // Re-enable scroll events after restoration
             requestAnimationFrame(() => {
                 communityView.isUpdating = false;
             });
