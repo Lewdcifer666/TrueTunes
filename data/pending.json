@@ -1,6 +1,6 @@
 {
-  "version": "2025-11-14T01:49:26.271Z",
-  "updated": "2025-11-14T01:49:26.271Z",
+  "version": "2025-11-14T02:24:25.452Z",
+  "updated": "2025-11-14T02:24:25.452Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -19,6 +19,24 @@
         252
       ],
       "added": "2025-11-14T01:49:26.271Z"
+    },
+    {
+      "id": "spotify:3WSvhkwOXQCzqutMaM7msp",
+      "name": "Broken Altar",
+      "platforms": {
+        "spotify": "3WSvhkwOXQCzqutMaM7msp"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        253
+      ],
+      "added": "2025-11-14T02:24:25.452Z"
     }
   ]
 }
