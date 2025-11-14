@@ -1,5 +1,24 @@
 {
-  "version": "2025-11-10T17:33:11.750Z",
-  "updated": "2025-11-10T17:33:11.750Z",
-  "artists": []
+  "version": "2025-11-14T01:49:26.271Z",
+  "updated": "2025-11-14T01:49:26.271Z",
+  "artists": [
+    {
+      "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
+      "name": "HOLLOWFRAME",
+      "platforms": {
+        "spotify": "4hooXmwOS36e4iNzb6e2r0"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        252
+      ],
+      "added": "2025-11-14T01:49:26.271Z"
+    }
+  ]
 }
