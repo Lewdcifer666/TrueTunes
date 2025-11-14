@@ -1,6 +1,6 @@
 {
-  "version": "2025-11-14T03:45:39.519Z",
-  "updated": "2025-11-14T03:45:39.519Z",
+  "version": "2025-11-14T04:14:35.976Z",
+  "updated": "2025-11-14T04:14:35.976Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -37,6 +37,24 @@
         253
       ],
       "added": "2025-11-14T02:24:25.452Z"
+    },
+    {
+      "id": "spotify:7bsplOK3tCf2DDi6z1bthq",
+      "name": "eli.",
+      "platforms": {
+        "spotify": "7bsplOK3tCf2DDi6z1bthq"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        254
+      ],
+      "added": "2025-11-14T04:14:35.976Z"
     }
   ]
 }
