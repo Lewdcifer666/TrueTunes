@@ -1,6 +1,6 @@
 {
-  "version": "2025-12-27T21:16:00.070Z",
-  "updated": "2025-12-27T21:16:00.070Z",
+  "version": "2025-12-27T21:29:51.864Z",
+  "updated": "2025-12-27T21:29:51.864Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -181,6 +181,24 @@
         261
       ],
       "added": "2025-12-27T21:06:20.542Z"
+    },
+    {
+      "id": "spotify:5AIdw9FiFk3ilgY4Mft1WN",
+      "name": "VAELYN",
+      "platforms": {
+        "spotify": "5AIdw9FiFk3ilgY4Mft1WN"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        262
+      ],
+      "added": "2025-12-27T21:29:51.864Z"
     }
   ]
 }
