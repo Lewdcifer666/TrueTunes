@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-22T20:49:36.235Z",
-  "updated": "2026-01-22T20:49:36.235Z",
+  "version": "2026-01-22T20:53:51.400Z",
+  "updated": "2026-01-22T20:53:51.400Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -291,6 +291,24 @@
         269
       ],
       "added": "2026-01-22T20:31:52.064Z"
+    },
+    {
+      "id": "spotify:3dKJPZ8kCa77upMXE8HHrR",
+      "name": "Bitter Ends",
+      "platforms": {
+        "spotify": "3dKJPZ8kCa77upMXE8HHrR"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        270
+      ],
+      "added": "2026-01-22T20:53:51.399Z"
     }
   ]
 }
