@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-22T19:06:44.575Z",
-  "updated": "2026-01-22T19:06:44.575Z",
+  "version": "2026-01-22T19:09:52.533Z",
+  "updated": "2026-01-22T19:09:52.533Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -237,6 +237,24 @@
         266
       ],
       "added": "2026-01-22T19:06:44.575Z"
+    },
+    {
+      "id": "spotify:5Cw0RywOrfPAzlLEsrBC73",
+      "name": "Ashes of Eden",
+      "platforms": {
+        "spotify": "5Cw0RywOrfPAzlLEsrBC73"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        267
+      ],
+      "added": "2026-01-22T19:09:52.533Z"
     }
   ]
 }
