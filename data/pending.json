@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-22T18:29:57.693Z",
-  "updated": "2026-01-22T18:29:57.693Z",
+  "version": "2026-01-22T18:55:42.833Z",
+  "updated": "2026-01-22T18:55:42.833Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -201,6 +201,24 @@
         262
       ],
       "added": "2025-12-27T21:29:51.864Z"
+    },
+    {
+      "id": "spotify:5X2de7IcUobSTy6B9IAXoP",
+      "name": "Bleed Token",
+      "platforms": {
+        "spotify": "5X2de7IcUobSTy6B9IAXoP"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        265
+      ],
+      "added": "2026-01-22T18:55:42.833Z"
     }
   ]
 }
