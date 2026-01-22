@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-22T19:00:32.498Z",
-  "updated": "2026-01-22T19:00:32.498Z",
+  "version": "2026-01-22T19:06:44.575Z",
+  "updated": "2026-01-22T19:06:44.575Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -219,6 +219,24 @@
         265
       ],
       "added": "2026-01-22T18:55:42.833Z"
+    },
+    {
+      "id": "spotify:49aqDHq2JAV6Aj7Z3yH9Ko",
+      "name": "deadveins",
+      "platforms": {
+        "spotify": "49aqDHq2JAV6Aj7Z3yH9Ko"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        266
+      ],
+      "added": "2026-01-22T19:06:44.575Z"
     }
   ]
 }
