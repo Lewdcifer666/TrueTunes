@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-27T20:37:46.225Z",
-  "updated": "2026-01-27T20:37:46.225Z",
+  "version": "2026-01-27T20:42:10.514Z",
+  "updated": "2026-01-27T20:42:10.514Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -349,6 +349,24 @@
         276
       ],
       "added": "2026-01-27T20:37:46.225Z"
+    },
+    {
+      "id": "spotify:1akhx9awV2MxGoty0Jh1N1",
+      "name": "Fractured Souls",
+      "platforms": {
+        "spotify": "1akhx9awV2MxGoty0Jh1N1"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        277
+      ],
+      "added": "2026-01-27T20:42:10.513Z"
     }
   ]
 }
