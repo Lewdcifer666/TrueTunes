@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-27T20:26:45.974Z",
-  "updated": "2026-01-27T20:26:45.974Z",
+  "version": "2026-01-27T20:37:46.225Z",
+  "updated": "2026-01-27T20:37:46.225Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -331,6 +331,24 @@
         275
       ],
       "added": "2026-01-27T20:26:45.974Z"
+    },
+    {
+      "id": "spotify:7M3FZ9zfhnYIwg4MzDccSz",
+      "name": "Mika Akakuma",
+      "platforms": {
+        "spotify": "7M3FZ9zfhnYIwg4MzDccSz"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        276
+      ],
+      "added": "2026-01-27T20:37:46.225Z"
     }
   ]
 }
