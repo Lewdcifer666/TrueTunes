@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-27T20:46:16.499Z",
-  "updated": "2026-01-27T20:46:16.499Z",
+  "version": "2026-01-27T20:48:06.100Z",
+  "updated": "2026-01-27T20:48:06.100Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -368,6 +368,24 @@
         277
       ],
       "added": "2026-01-27T20:42:10.513Z"
+    },
+    {
+      "id": "spotify:7mdDNgQFisdo2l4wD6tNId",
+      "name": "Exiled From Hell",
+      "platforms": {
+        "spotify": "7mdDNgQFisdo2l4wD6tNId"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        279
+      ],
+      "added": "2026-01-27T20:48:06.099Z"
     }
   ]
 }
