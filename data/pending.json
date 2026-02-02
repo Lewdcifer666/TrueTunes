@@ -1,6 +1,6 @@
 {
-  "version": "2026-02-01T23:47:44.274Z",
-  "updated": "2026-02-01T23:47:44.274Z",
+  "version": "2026-02-02T00:24:40.292Z",
+  "updated": "2026-02-02T00:24:40.292Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -386,6 +386,24 @@
         279
       ],
       "added": "2026-01-27T20:48:06.099Z"
+    },
+    {
+      "id": "spotify:1Xr0xMO4dQ8SGVOeYHdC6n",
+      "name": "NOVAINE",
+      "platforms": {
+        "spotify": "1Xr0xMO4dQ8SGVOeYHdC6n"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        280
+      ],
+      "added": "2026-02-02T00:24:40.292Z"
     }
   ]
 }
