@@ -1,6 +1,6 @@
 {
-  "version": "2026-02-05T18:31:54.457Z",
-  "updated": "2026-02-05T18:31:54.457Z",
+  "version": "2026-02-05T18:34:00.607Z",
+  "updated": "2026-02-05T18:34:00.607Z",
   "artists": [
     {
       "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
@@ -404,6 +404,24 @@
         280
       ],
       "added": "2026-02-02T00:24:40.292Z"
+    },
+    {
+      "id": "spotify:5k9JMCo9qQWSs3Etc88gZ3",
+      "name": "Good Mourning",
+      "platforms": {
+        "spotify": "5k9JMCo9qQWSs3Etc88gZ3"
+      },
+      "votes": 1,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 1
+      },
+      "issueNumbers": [
+        281
+      ],
+      "added": "2026-02-05T18:34:00.607Z"
     }
   ]
 }
