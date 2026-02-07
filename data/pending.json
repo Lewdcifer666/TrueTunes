@@ -1,33 +1,7 @@
 {
-  "version": "2026-02-07T20:47:32.854Z",
-  "updated": "2026-02-07T20:47:32.854Z",
+  "version": "2026-02-07T20:48:04.492Z",
+  "updated": "2026-02-07T20:48:04.492Z",
   "artists": [
-    {
-      "id": "spotify:0zcfo3QWQw4OLLmMuKiDep",
-      "name": "Broken Avenue",
-      "platforms": {
-        "spotify": "0zcfo3QWQw4OLLmMuKiDep"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        256,
-        271,
-        320,
-        319,
-        322,
-        321,
-        324,
-        323,
-        325
-      ],
-      "added": "2025-12-20T19:57:22.228Z"
-    },
     {
       "id": "spotify:063vqHqNlcCP99ekT9psO9",
       "name": "AIphonic",

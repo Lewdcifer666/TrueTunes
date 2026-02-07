@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:47:32.854Z",
-  "updated": "2026-02-07T20:47:32.854Z",
-  "total": 30,
+  "version": "2026-02-07T20:48:04.492Z",
+  "updated": "2026-02-07T20:48:04.492Z",
+  "total": 31,
   "artists": [
     {
       "id": "test1",
@@ -746,6 +746,34 @@
         255
       ],
       "added": "2026-02-07T20:45:53.842Z"
+    },
+    {
+      "id": "spotify:0zcfo3QWQw4OLLmMuKiDep",
+      "name": "Broken Avenue",
+      "platforms": {
+        "spotify": "0zcfo3QWQw4OLLmMuKiDep"
+      },
+      "votes": 11,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 11
+      },
+      "issueNumbers": [
+        327,
+        326,
+        325,
+        324,
+        323,
+        322,
+        321,
+        320,
+        319,
+        271,
+        256
+      ],
+      "added": "2026-02-07T20:48:04.489Z"
     }
   ]
 }
