@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:59:09.115Z",
-  "updated": "2026-02-07T20:59:09.115Z",
-  "total": 37,
+  "version": "2026-02-07T20:59:21.755Z",
+  "updated": "2026-02-07T20:59:21.755Z",
+  "total": 38,
   "artists": [
     {
       "id": "test1",
@@ -937,6 +937,33 @@
         265
       ],
       "added": "2026-02-07T20:56:38.857Z"
+    },
+    {
+      "id": "spotify:1W92618KeHZWH9Rj0ITO5v",
+      "name": "HEARTVOID",
+      "platforms": {
+        "spotify": "1W92618KeHZWH9Rj0ITO5v"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        387,
+        386,
+        385,
+        384,
+        383,
+        382,
+        381,
+        380,
+        379,
+        261
+      ],
+      "added": "2026-02-07T20:59:21.751Z"
     }
   ]
 }
