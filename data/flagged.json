@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:48:50.629Z",
-  "updated": "2026-02-07T20:48:50.629Z",
-  "total": 31,
+  "version": "2026-02-07T20:49:17.345Z",
+  "updated": "2026-02-07T20:49:17.345Z",
+  "total": 32,
   "artists": [
     {
       "id": "test1",
@@ -774,6 +774,33 @@
         256
       ],
       "added": "2026-02-07T20:48:04.489Z"
+    },
+    {
+      "id": "spotify:063vqHqNlcCP99ekT9psO9",
+      "name": "AIphonic",
+      "platforms": {
+        "spotify": "063vqHqNlcCP99ekT9psO9"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        336,
+        335,
+        334,
+        333,
+        332,
+        331,
+        330,
+        329,
+        328,
+        257
+      ],
+      "added": "2026-02-07T20:49:17.341Z"
     }
   ]
 }
