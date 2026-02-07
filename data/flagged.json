@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T21:04:50.401Z",
-  "updated": "2026-02-07T21:04:50.401Z",
-  "total": 41,
+  "version": "2026-02-07T21:05:01.876Z",
+  "updated": "2026-02-07T21:05:01.876Z",
+  "total": 42,
   "artists": [
     {
       "id": "test1",
@@ -1045,6 +1045,33 @@
         267
       ],
       "added": "2026-02-07T21:03:02.268Z"
+    },
+    {
+      "id": "spotify:50ve8lBAG1M315OHj41vty",
+      "name": "Angels Of Agony",
+      "platforms": {
+        "spotify": "50ve8lBAG1M315OHj41vty"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        422,
+        421,
+        420,
+        419,
+        418,
+        417,
+        416,
+        415,
+        414,
+        268
+      ],
+      "added": "2026-02-07T21:05:01.874Z"
     }
   ]
 }
