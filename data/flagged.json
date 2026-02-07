@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:41:28.604Z",
-  "updated": "2026-02-07T20:41:28.604Z",
-  "total": 26,
+  "version": "2026-02-07T20:41:37.921Z",
+  "updated": "2026-02-07T20:41:37.921Z",
+  "total": 27,
   "artists": [
     {
       "id": "test1",
@@ -636,6 +636,33 @@
         242
       ],
       "added": "2025-11-10T17:33:11.747Z"
+    },
+    {
+      "id": "spotify:4hooXmwOS36e4iNzb6e2r0",
+      "name": "HOLLOWFRAME",
+      "platforms": {
+        "spotify": "4hooXmwOS36e4iNzb6e2r0"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        290,
+        289,
+        288,
+        287,
+        286,
+        285,
+        284,
+        283,
+        282,
+        252
+      ],
+      "added": "2026-02-07T20:41:37.917Z"
     }
   ]
 }
