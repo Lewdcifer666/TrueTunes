@@ -1,33 +1,7 @@
 {
-  "version": "2026-02-07T20:44:12.365Z",
-  "updated": "2026-02-07T20:44:12.365Z",
+  "version": "2026-02-07T20:44:21.693Z",
+  "updated": "2026-02-07T20:44:21.693Z",
   "artists": [
-    {
-      "id": "spotify:7bsplOK3tCf2DDi6z1bthq",
-      "name": "eli.",
-      "platforms": {
-        "spotify": "7bsplOK3tCf2DDi6z1bthq"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        254,
-        300,
-        302,
-        301,
-        303,
-        306,
-        305,
-        304,
-        307
-      ],
-      "added": "2025-11-14T04:14:35.976Z"
-    },
     {
       "id": "spotify:4x57vN6Q5KAyPEi9DVSJkQ",
       "name": "Temple of Ash",

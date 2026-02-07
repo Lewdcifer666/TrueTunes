@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:44:12.365Z",
-  "updated": "2026-02-07T20:44:12.365Z",
-  "total": 28,
+  "version": "2026-02-07T20:44:21.693Z",
+  "updated": "2026-02-07T20:44:21.693Z",
+  "total": 29,
   "artists": [
     {
       "id": "test1",
@@ -691,6 +691,33 @@
         253
       ],
       "added": "2026-02-07T20:42:59.016Z"
+    },
+    {
+      "id": "spotify:7bsplOK3tCf2DDi6z1bthq",
+      "name": "eli.",
+      "platforms": {
+        "spotify": "7bsplOK3tCf2DDi6z1bthq"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        308,
+        307,
+        306,
+        305,
+        304,
+        303,
+        302,
+        301,
+        300,
+        254
+      ],
+      "added": "2026-02-07T20:44:21.688Z"
     }
   ]
 }
