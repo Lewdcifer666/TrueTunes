@@ -1,32 +1,7 @@
 {
-  "version": "2026-02-07T21:06:05.101Z",
-  "updated": "2026-02-07T21:06:05.101Z",
+  "version": "2026-02-07T21:06:20.007Z",
+  "updated": "2026-02-07T21:06:20.007Z",
   "artists": [
-    {
-      "id": "spotify:3dKJPZ8kCa77upMXE8HHrR",
-      "name": "Bitter Ends",
-      "platforms": {
-        "spotify": "3dKJPZ8kCa77upMXE8HHrR"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        270,
-        423,
-        425,
-        424,
-        427,
-        426,
-        429,
-        428
-      ],
-      "added": "2026-01-22T20:53:51.399Z"
-    },
     {
       "id": "spotify:3oSH61fBdu6lifGhA1H4OP",
       "name": "Glasswell",
