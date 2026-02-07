@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T21:07:42.095Z",
-  "updated": "2026-02-07T21:07:42.095Z",
-  "total": 43,
+  "version": "2026-02-07T21:07:53.119Z",
+  "updated": "2026-02-07T21:07:53.119Z",
+  "total": 44,
   "artists": [
     {
       "id": "test1",
@@ -1100,6 +1100,33 @@
         432
       ],
       "added": "2026-02-07T21:06:20.004Z"
+    },
+    {
+      "id": "spotify:3oSH61fBdu6lifGhA1H4OP",
+      "name": "Glasswell",
+      "platforms": {
+        "spotify": "3oSH61fBdu6lifGhA1H4OP"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        441,
+        440,
+        439,
+        438,
+        437,
+        436,
+        435,
+        434,
+        433,
+        275
+      ],
+      "added": "2026-02-07T21:07:53.116Z"
     }
   ]
 }
