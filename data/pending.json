@@ -1,33 +1,7 @@
 {
-  "version": "2026-02-07T20:52:48.212Z",
-  "updated": "2026-02-07T20:52:48.212Z",
+  "version": "2026-02-07T20:53:05.074Z",
+  "updated": "2026-02-07T20:53:05.074Z",
   "artists": [
-    {
-      "id": "spotify:0w6HLRyWtF9lvvK1HsUVmB",
-      "name": "Good Mourning",
-      "platforms": {
-        "spotify": "0w6HLRyWtF9lvvK1HsUVmB"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        260,
-        263,
-        356,
-        355,
-        358,
-        357,
-        360,
-        359,
-        361
-      ],
-      "added": "2025-12-27T20:41:33.395Z"
-    },
     {
       "id": "spotify:1W92618KeHZWH9Rj0ITO5v",
       "name": "HEARTVOID",
