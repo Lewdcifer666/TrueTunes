@@ -1,32 +1,7 @@
 {
-  "version": "2026-02-07T21:15:48.472Z",
-  "updated": "2026-02-07T21:15:48.472Z",
+  "version": "2026-02-07T21:15:58.994Z",
+  "updated": "2026-02-07T21:15:58.994Z",
   "artists": [
-    {
-      "id": "spotify:1Xr0xMO4dQ8SGVOeYHdC6n",
-      "name": "NOVAINE",
-      "platforms": {
-        "spotify": "1Xr0xMO4dQ8SGVOeYHdC6n"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        280,
-        470,
-        469,
-        472,
-        471,
-        473,
-        475,
-        474
-      ],
-      "added": "2026-02-02T00:24:40.292Z"
-    },
     {
       "id": "spotify:5k9JMCo9qQWSs3Etc88gZ3",
       "name": "Good Mourning",
