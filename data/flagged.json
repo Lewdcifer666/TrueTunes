@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:45:32.123Z",
-  "updated": "2026-02-07T20:45:32.123Z",
-  "total": 29,
+  "version": "2026-02-07T20:45:53.846Z",
+  "updated": "2026-02-07T20:45:53.846Z",
+  "total": 30,
   "artists": [
     {
       "id": "test1",
@@ -718,6 +718,34 @@
         254
       ],
       "added": "2026-02-07T20:44:21.688Z"
+    },
+    {
+      "id": "spotify:4x57vN6Q5KAyPEi9DVSJkQ",
+      "name": "Temple of Ash",
+      "platforms": {
+        "spotify": "4x57vN6Q5KAyPEi9DVSJkQ"
+      },
+      "votes": 11,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 11
+      },
+      "issueNumbers": [
+        318,
+        317,
+        316,
+        315,
+        314,
+        313,
+        312,
+        311,
+        310,
+        309,
+        255
+      ],
+      "added": "2026-02-07T20:45:53.842Z"
     }
   ]
 }

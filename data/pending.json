@@ -1,32 +1,7 @@
 {
-  "version": "2026-02-07T20:45:32.123Z",
-  "updated": "2026-02-07T20:45:32.123Z",
+  "version": "2026-02-07T20:45:53.846Z",
+  "updated": "2026-02-07T20:45:53.846Z",
   "artists": [
-    {
-      "id": "spotify:4x57vN6Q5KAyPEi9DVSJkQ",
-      "name": "Temple of Ash",
-      "platforms": {
-        "spotify": "4x57vN6Q5KAyPEi9DVSJkQ"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        255,
-        309,
-        311,
-        310,
-        313,
-        312,
-        315,
-        314
-      ],
-      "added": "2025-11-30T18:30:49.169Z"
-    },
     {
       "id": "spotify:0zcfo3QWQw4OLLmMuKiDep",
       "name": "Broken Avenue",
