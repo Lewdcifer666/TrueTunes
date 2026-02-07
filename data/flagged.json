@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:54:42.575Z",
-  "updated": "2026-02-07T20:54:42.575Z",
-  "total": 35,
+  "version": "2026-02-07T20:55:00.639Z",
+  "updated": "2026-02-07T20:55:00.639Z",
+  "total": 36,
   "artists": [
     {
       "id": "test1",
@@ -883,6 +883,33 @@
         260
       ],
       "added": "2026-02-07T20:53:05.071Z"
+    },
+    {
+      "id": "spotify:44cdc5PhT5bCqd8PJxywac",
+      "name": "Break Me Open",
+      "platforms": {
+        "spotify": "44cdc5PhT5bCqd8PJxywac"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        370,
+        369,
+        368,
+        367,
+        366,
+        365,
+        364,
+        278,
+        274,
+        269
+      ],
+      "added": "2026-02-07T20:55:00.633Z"
     }
   ]
 }
