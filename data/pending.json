@@ -1,32 +1,7 @@
 {
-  "version": "2026-02-07T21:13:02.038Z",
-  "updated": "2026-02-07T21:13:02.038Z",
+  "version": "2026-02-07T21:13:11.534Z",
+  "updated": "2026-02-07T21:13:11.534Z",
   "artists": [
-    {
-      "id": "spotify:7mdDNgQFisdo2l4wD6tNId",
-      "name": "Exiled From Hell",
-      "platforms": {
-        "spotify": "7mdDNgQFisdo2l4wD6tNId"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        279,
-        461,
-        460,
-        464,
-        463,
-        462,
-        465,
-        466
-      ],
-      "added": "2026-01-27T20:48:06.099Z"
-    },
     {
       "id": "spotify:1Xr0xMO4dQ8SGVOeYHdC6n",
       "name": "NOVAINE",
