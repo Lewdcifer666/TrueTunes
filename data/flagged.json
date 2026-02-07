@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T21:00:26.777Z",
-  "updated": "2026-02-07T21:00:26.777Z",
-  "total": 38,
+  "version": "2026-02-07T21:00:35.609Z",
+  "updated": "2026-02-07T21:00:35.609Z",
+  "total": 39,
   "artists": [
     {
       "id": "test1",
@@ -964,6 +964,33 @@
         261
       ],
       "added": "2026-02-07T20:59:21.751Z"
+    },
+    {
+      "id": "spotify:5AIdw9FiFk3ilgY4Mft1WN",
+      "name": "VAELYN",
+      "platforms": {
+        "spotify": "5AIdw9FiFk3ilgY4Mft1WN"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        396,
+        395,
+        394,
+        393,
+        392,
+        391,
+        390,
+        389,
+        388,
+        262
+      ],
+      "added": "2026-02-07T21:00:35.606Z"
     }
   ]
 }
