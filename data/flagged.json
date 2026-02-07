@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:51:27.501Z",
-  "updated": "2026-02-07T20:51:27.501Z",
-  "total": 33,
+  "version": "2026-02-07T20:51:37.519Z",
+  "updated": "2026-02-07T20:51:37.519Z",
+  "total": 34,
   "artists": [
     {
       "id": "test1",
@@ -828,6 +828,33 @@
         258
       ],
       "added": "2026-02-07T20:50:21.900Z"
+    },
+    {
+      "id": "spotify:5DdtPwdpxCOSz7HmS9W7wv",
+      "name": "DEADCUE",
+      "platforms": {
+        "spotify": "5DdtPwdpxCOSz7HmS9W7wv"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        354,
+        353,
+        352,
+        351,
+        350,
+        349,
+        348,
+        347,
+        346,
+        259
+      ],
+      "added": "2026-02-07T20:51:37.515Z"
     }
   ]
 }
