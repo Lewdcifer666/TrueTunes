@@ -1,7 +1,7 @@
 {
-  "version": "2026-02-07T20:50:10.477Z",
-  "updated": "2026-02-07T20:50:10.477Z",
-  "total": 32,
+  "version": "2026-02-07T20:50:21.904Z",
+  "updated": "2026-02-07T20:50:21.904Z",
+  "total": 33,
   "artists": [
     {
       "id": "test1",
@@ -801,6 +801,33 @@
         257
       ],
       "added": "2026-02-07T20:49:17.341Z"
+    },
+    {
+      "id": "spotify:3Lehp0KvBE20AqZ33k0OyG",
+      "name": "SoundsArtificial",
+      "platforms": {
+        "spotify": "3Lehp0KvBE20AqZ33k0OyG"
+      },
+      "votes": 10,
+      "reporters": [
+        "Lewdcifer666"
+      ],
+      "reporterVotes": {
+        "Lewdcifer666": 10
+      },
+      "issueNumbers": [
+        345,
+        344,
+        343,
+        342,
+        341,
+        340,
+        339,
+        338,
+        337,
+        258
+      ],
+      "added": "2026-02-07T20:50:21.900Z"
     }
   ]
 }

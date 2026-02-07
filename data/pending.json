@@ -1,33 +1,7 @@
 {
-  "version": "2026-02-07T20:50:10.477Z",
-  "updated": "2026-02-07T20:50:10.477Z",
+  "version": "2026-02-07T20:50:21.904Z",
+  "updated": "2026-02-07T20:50:21.904Z",
   "artists": [
-    {
-      "id": "spotify:3Lehp0KvBE20AqZ33k0OyG",
-      "name": "SoundsArtificial",
-      "platforms": {
-        "spotify": "3Lehp0KvBE20AqZ33k0OyG"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        258,
-        337,
-        340,
-        339,
-        338,
-        341,
-        343,
-        342,
-        344
-      ],
-      "added": "2025-12-20T21:37:35.071Z"
-    },
     {
       "id": "spotify:5DdtPwdpxCOSz7HmS9W7wv",
       "name": "DEADCUE",
