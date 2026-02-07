@@ -1,32 +1,7 @@
 {
-  "version": "2026-02-07T21:10:29.012Z",
-  "updated": "2026-02-07T21:10:29.012Z",
+  "version": "2026-02-07T21:10:38.977Z",
+  "updated": "2026-02-07T21:10:38.977Z",
   "artists": [
-    {
-      "id": "spotify:7M3FZ9zfhnYIwg4MzDccSz",
-      "name": "Mika Akakuma",
-      "platforms": {
-        "spotify": "7M3FZ9zfhnYIwg4MzDccSz"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        276,
-        442,
-        447,
-        446,
-        445,
-        444,
-        443,
-        448
-      ],
-      "added": "2026-01-27T20:37:46.225Z"
-    },
     {
       "id": "spotify:1akhx9awV2MxGoty0Jh1N1",
       "name": "Fractured Souls",
