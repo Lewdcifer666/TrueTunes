@@ -1,33 +1,7 @@
 {
-  "version": "2026-02-07T20:42:47.811Z",
-  "updated": "2026-02-07T20:42:47.811Z",
+  "version": "2026-02-07T20:42:59.020Z",
+  "updated": "2026-02-07T20:42:59.020Z",
   "artists": [
-    {
-      "id": "spotify:3WSvhkwOXQCzqutMaM7msp",
-      "name": "Broken Altar",
-      "platforms": {
-        "spotify": "3WSvhkwOXQCzqutMaM7msp"
-      },
-      "votes": 9,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 9
-      },
-      "issueNumbers": [
-        253,
-        264,
-        292,
-        291,
-        294,
-        293,
-        296,
-        295,
-        297
-      ],
-      "added": "2025-11-14T02:24:25.452Z"
-    },
     {
       "id": "spotify:7bsplOK3tCf2DDi6z1bthq",
       "name": "eli.",
