@@ -1,6 +1,6 @@
 {
-  "version": "2026-02-07T20:41:57.802Z",
-  "updated": "2026-02-07T20:41:57.802Z",
+  "version": "2026-02-07T20:42:12.385Z",
+  "updated": "2026-02-07T20:42:12.385Z",
   "artists": [
     {
       "id": "spotify:3WSvhkwOXQCzqutMaM7msp",
@@ -8,16 +8,18 @@
       "platforms": {
         "spotify": "3WSvhkwOXQCzqutMaM7msp"
       },
-      "votes": 2,
+      "votes": 4,
       "reporters": [
         "Lewdcifer666"
       ],
       "reporterVotes": {
-        "Lewdcifer666": 2
+        "Lewdcifer666": 4
       },
       "issueNumbers": [
         253,
-        264
+        264,
+        292,
+        291
       ],
       "added": "2025-11-14T02:24:25.452Z"
     },
