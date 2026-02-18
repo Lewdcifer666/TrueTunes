@@ -1,6 +1,6 @@
 {
-  "version": "2026-02-18T19:54:17.907Z",
-  "updated": "2026-02-18T19:54:17.907Z",
+  "version": "2026-02-18T19:54:33.909Z",
+  "updated": "2026-02-18T19:54:33.909Z",
   "artists": [
     {
       "id": "spotify:5k9JMCo9qQWSs3Etc88gZ3",
@@ -19,31 +19,6 @@
         281
       ],
       "added": "2026-02-05T18:34:00.607Z"
-    },
-    {
-      "id": "spotify:6us2N9JGcLCU1LnWJ3oNYf",
-      "name": "WAKE UP FALLING",
-      "platforms": {
-        "spotify": "6us2N9JGcLCU1LnWJ3oNYf"
-      },
-      "votes": 8,
-      "reporters": [
-        "Lewdcifer666"
-      ],
-      "reporterVotes": {
-        "Lewdcifer666": 8
-      },
-      "issueNumbers": [
-        479,
-        478,
-        481,
-        480,
-        483,
-        482,
-        485,
-        484
-      ],
-      "added": "2026-02-18T19:53:40.326Z"
     }
   ]
 }
